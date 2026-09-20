@@ -123,18 +123,16 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
           >
             Attributes
           </button>
-          {hasProvenance && (
-            <button
-              onClick={() => setActiveTab('provenance')}
-              className={`py-2 px-3 border-b-2 transition-colors flex items-center gap-1.5 ${
-                activeTab === 'provenance'
-                  ? 'border-[#c86446] text-[#f4f3ef]'
-                  : 'border-transparent text-[#a09f99] hover:text-[#f4f3ef]'
-              }`}
-            >
-              Provenance
-            </button>
-          )}
+          <button
+            onClick={() => setActiveTab('provenance')}
+            className={`py-2 px-3 border-b-2 transition-colors flex items-center gap-1.5 ${
+              activeTab === 'provenance'
+                ? 'border-[#c86446] text-[#f4f3ef]'
+                : 'border-transparent text-[#a09f99] hover:text-[#f4f3ef]'
+            }`}
+          >
+            Provenance
+          </button>
           {hasAnomalies && (
             <button
               onClick={() => setActiveTab('anomalies')}
@@ -282,7 +280,7 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
             </>
           )}
 
-          {activeTab === 'provenance' && unit.provenance && (
+          {activeTab === 'provenance' && (
             <ProvenancePanel provenance={unit.provenance} />
           )}
 

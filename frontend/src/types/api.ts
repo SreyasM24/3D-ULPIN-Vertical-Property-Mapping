@@ -200,6 +200,8 @@ export interface VerticalUnit {
   updated_at?: string;
 
   // UI convenience aliases
+  floor_level?: number;
+  height_m?: number;
   vertical_range?: {
     z_min: number;
     z_max: number;
@@ -604,8 +606,9 @@ export interface JobResultResponse {
 
 export interface ParcelProcessJobRequest {
   parcel_id?: string | null;
-  state_code?: number | string;
+  state_code?: number;
   district_code?: string;
+  revenue_district_code?: string;
   village_code?: string;
   survey_number?: string;
   parcel_geojson?: Record<string, any>;
@@ -659,14 +662,21 @@ export interface ProvenanceRecord {
   id: string;
   target_id: string;
   source: string;
+  source_type?: string;
+  source_reference?: string;
   method: string;
   model: string;
   model_version: string;
   data_stage: string;
+  evidence_tier?: 'OBSERVED' | 'AI_INFERENCE' | 'DETERMINISTIC' | 'TEST_FIXTURE';
   confidence: 'HIGH' | 'MEDIUM' | 'LOW' | 'UNKNOWN';
   uncertainty_m?: number;
   timestamp: string;
   operator_or_system: string;
+  requires_review?: boolean;
+  vertical_classification?: string;
+  floor_span?: string[];
+  [key: string]: any;
 }
 
 // -------------------------------------------------------------

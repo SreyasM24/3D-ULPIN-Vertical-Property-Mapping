@@ -65,6 +65,17 @@ export default function App() {
   const [selectedItem, setSelectedItem] = useState<SelectedCadastralItem>(null);
   const [resetViewTrigger, setResetViewTrigger] = useState<number>(0);
 
+  // Bounded timeout promise wrapper preventing hanging network calls
+  const withTimeout = <T,>(promise: Promise<T>, ms = 10000): Promise<T> => {
+    let timer: any;
+    const timeout = new Promise<T>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`Request timed out after ${ms}ms`)), ms);
+    });
+    return Promise.race([promise, timeout]).finally(() => {
+      if (timer) clearTimeout(timer);
+    });
+  };
+
   // Fetch digital twin and validation data for a given parcel in parallel
   const loadParcelDetails = useCallback(async (parcel: LandParcel) => {
     // Clear previous parcel details immediately so stale data is never preserved
@@ -73,23 +84,23 @@ export default function App() {
     setSelectedItem(null);
 
     try {
-      const [twinRes, valRes] = await Promise.all([
-        digitalTwinApi.getDigitalTwin(parcel.id),
-        validationApi.getValidationReport(parcel.id),
+      const [twinOutcome, valOutcome] = await Promise.allSettled([
+        withTimeout(digitalTwinApi.getDigitalTwin(parcel.id), 10000),
+        withTimeout(validationApi.getValidationReport(parcel.id), 10000),
       ]);
 
-      if (twinRes.success && twinRes.data) {
-        setDigitalTwin(twinRes.data);
-        if (twinRes.data.units && twinRes.data.units.length > 0) {
+      if (twinOutcome.status === 'fulfilled' && twinOutcome.value.success && twinOutcome.value.data) {
+        setDigitalTwin(twinOutcome.value.data);
+        if (twinOutcome.value.data.units && twinOutcome.value.data.units.length > 0) {
           setSelectedItem({
             type: 'unit',
-            data: twinRes.data.units[0],
+            data: twinOutcome.value.data.units[0],
           });
         }
       }
 
-      if (valRes.success && valRes.data) {
-        setValidationReport(valRes.data);
+      if (valOutcome.status === 'fulfilled' && valOutcome.value.success && valOutcome.value.data) {
+        setValidationReport(valOutcome.value.data);
       }
     } catch (err: any) {
       console.warn('Error loading parcel details:', err?.message);
@@ -162,17 +173,61 @@ export default function App() {
     initSystem();
   }, [initSystem]);
 
+  // Safely fetch completed job artifacts with bounded timeouts and fallbacks
+  const fetchCompletionArtifacts = useCallback(
+    async (job: ProcessingJob) => {
+      try {
+        const [resultSettled, parcelsSettled] = await Promise.allSettled([
+          withTimeout(jobsApi.getJobResult(job.job_id), 8000),
+          withTimeout(parcelsApi.listParcels(1, 20), 8000),
+        ]);
+
+        if (resultSettled.status === 'fulfilled' && resultSettled.value.success && resultSettled.value.data) {
+          setJobResult(resultSettled.value.data);
+        } else if (job.result_reference) {
+          // Fallback immediately to inline result_reference so UI never hangs
+          setJobResult(job.result_reference as any);
+        }
+
+        if (parcelsSettled.status === 'fulfilled' && parcelsSettled.value.success && parcelsSettled.value.data) {
+          const items = parcelsSettled.value.data.items || [];
+          setParcels(items);
+          const targetId =
+            job.entity_id ||
+            job.result_reference?.parcel_id ||
+            (resultSettled.status === 'fulfilled' && resultSettled.value.data?.created_entities?.parcel_id);
+          const matching = items.find((p) => p.id === targetId) || items[0];
+          if (matching) {
+            setSelectedParcel(matching);
+            await loadParcelDetails(matching);
+          }
+        }
+      } catch (fetchErr) {
+        console.error('Error fetching completed job artifacts:', fetchErr);
+        if (job.result_reference) {
+          setJobResult(job.result_reference as any);
+        }
+      }
+    },
+    [loadParcelDetails]
+  );
+
   // Real-time Job Status Polling (Adaptive with fast initial tick & immediate termination)
   useEffect(() => {
     if (!activeJob) return;
 
     const jobId = activeJob.job_id;
-    const isTerminal =
-      activeJob.status === 'COMPLETED' ||
-      activeJob.status === 'FAILED' ||
-      activeJob.status === 'CANCELLED';
 
-    if (isTerminal) return;
+    if (activeJob.status === 'COMPLETED') {
+      if (!jobResult) {
+        fetchCompletionArtifacts(activeJob);
+      }
+      return;
+    }
+
+    if (activeJob.status === 'FAILED' || activeJob.status === 'CANCELLED') {
+      return;
+    }
 
     let isSubscribed = true;
     let timerId: ReturnType<typeof setTimeout> | null = null;
@@ -188,38 +243,16 @@ export default function App() {
         setActiveJob(updated);
 
         if (updated.status === 'COMPLETED') {
-          // Terminal COMPLETED state: immediately stop polling and fetch real artifacts in parallel
-          try {
-            const [resultRes, parcelsRes] = await Promise.all([
-              jobsApi.getJobResult(jobId),
-              parcelsApi.listParcels(1, 20),
-            ]);
-
-            if (isSubscribed && resultRes.success && resultRes.data) {
-              setJobResult(resultRes.data);
-            }
-
-            if (isSubscribed && parcelsRes.success && parcelsRes.data) {
-              const items = parcelsRes.data.items || [];
-              setParcels(items);
-              const targetId = updated.entity_id || resultRes.data?.created_entities?.parcel_id;
-              const matching = items.find((p) => p.id === targetId) || items[0];
-              if (matching) {
-                setSelectedParcel(matching);
-                await loadParcelDetails(matching);
-              }
-            }
-          } catch (fetchErr) {
-            console.error('Error fetching completed job artifacts:', fetchErr);
-          }
-          return; // Stop polling loop immediately
+          // Terminal COMPLETED state: stop polling loop and fetch artifacts with fallback
+          await fetchCompletionArtifacts(updated);
+          return;
         } else if (updated.status === 'FAILED') {
           if (isSubscribed) {
             setErrorMessage(updated.error_message || 'Processing job failed during execution.');
           }
-          return; // Stop polling loop immediately
+          return;
         } else if (updated.status === 'CANCELLED') {
-          return; // Stop polling loop immediately
+          return;
         }
 
         // Reschedule next poll while actively processing
@@ -241,7 +274,7 @@ export default function App() {
       isSubscribed = false;
       if (timerId) clearTimeout(timerId);
     };
-  }, [activeJob?.job_id, activeJob?.status, loadParcelDetails]);
+  }, [activeJob?.job_id, activeJob?.status, jobResult, fetchCompletionArtifacts]);
 
   // Handle Survey Processing Job Submission
   const handleStartJob = async (request: ParcelProcessJobRequest | CreateSurveyJobRequest) => {
@@ -302,6 +335,12 @@ export default function App() {
     setActiveTab('digital-twin');
   };
 
+  // Select parcel and immediately clear old state before fetching details
+  const handleSelectParcel = async (parcel: LandParcel) => {
+    setSelectedParcel(parcel);
+    await loadParcelDetails(parcel);
+  };
+
   return (
     <AppShell
       activeTab={activeTab}
@@ -311,6 +350,9 @@ export default function App() {
       activeCrs={selectedParcel?.crs || 'EPSG:4326'}
       parcelNumber={selectedParcel?.survey_number || (isLoading ? 'Loading…' : 'None')}
       validationBadge={validationReport ? String(validationReport.total_rules_executed ?? validationReport.evaluated_rules?.length ?? 'OK') : undefined}
+      parcels={parcels}
+      selectedParcel={selectedParcel}
+      onSelectParcel={handleSelectParcel}
     >
       {/* Backend Connection Alert Banner if disconnected */}
       {!isBackendConnected && !isLoading && (
@@ -370,10 +412,7 @@ export default function App() {
                 isLoading={isSubmittingJob}
                 activeParcel={selectedParcel}
                 availableParcels={parcels}
-                onSelectParcel={async (parcel) => {
-                  setSelectedParcel(parcel);
-                  await loadParcelDetails(parcel);
-                }}
+                onSelectParcel={handleSelectParcel}
               />
             </div>
 

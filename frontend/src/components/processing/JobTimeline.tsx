@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ProcessingJob, JobStage, JobResultResponse } from '../../types/api.ts';
 import {
   CheckCircle2,
@@ -47,6 +47,43 @@ export const JobTimeline: React.FC<JobTimelineProps> = ({
   const isFailed = job.status === 'FAILED';
   const isCancelled = job.status === 'CANCELLED';
   const isActive = job.status === 'RUNNING' || job.status === 'QUEUED';
+
+  const [hasTimedOut, setHasTimedOut] = useState(false);
+
+  const effectiveResult: JobResultResponse | null = jobResult || (job.result_reference && typeof job.result_reference === 'object' ? {
+    job_id: job.job_id,
+    status: 'COMPLETED',
+    job_type: job.job_type,
+    entity_type: job.entity_type,
+    entity_id: job.entity_id,
+    quality_score: (job.result_reference as any).quality_score,
+    quality_grade: (job.result_reference as any).quality_grade,
+    is_valid: (job.result_reference as any).is_valid ?? true,
+    created_entities: (job.result_reference as any).created_entities || {
+      building_code: (job.result_reference as any).building_code,
+      floors_count: (job.result_reference as any).floors_count,
+      units_count: (job.result_reference as any).units_count,
+      unit_ulpins: (job.result_reference as any).unit_ulpins || [],
+    },
+    validation_summary: (job.result_reference as any).validation_summary,
+    digital_twin_url: (job.result_reference as any).digital_twin_url,
+    anomalies: (job.result_reference as any).anomalies || [],
+    artifacts: (job.result_reference as any).artifacts || {},
+  } as JobResultResponse : null);
+
+  useEffect(() => {
+    let timer: any;
+    if (isCompleted && !effectiveResult) {
+      timer = setTimeout(() => {
+        setHasTimedOut(true);
+      }, 10000);
+    } else {
+      setHasTimedOut(false);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [isCompleted, effectiveResult]);
 
   // Extract recorded events from backend stage_details
   const stageEvents: any[] = job.stage_details?.events || [];
@@ -278,24 +315,24 @@ export const JobTimeline: React.FC<JobTimelineProps> = ({
             </p>
 
             {/* If Job is Completed & Result is available, render real backend result cards */}
-            {isCompleted && jobResult ? (
+            {isCompleted && effectiveResult ? (
               <div className="space-y-3 text-xs">
                 {/* Score & Validation */}
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-[#222428] p-2.5 rounded border border-[#2d3034]">
                     <div className="text-[10px] uppercase text-[#a09f99]">Quality Score</div>
                     <div className="font-mono text-base font-bold text-[#f4f3ef] mt-0.5">
-                      {jobResult.quality_score ?? 92.0} / 100
+                      {effectiveResult.quality_score != null ? `${effectiveResult.quality_score} / 100` : 'Validated'}
                     </div>
                     <div className="text-[10px] text-[#4e8a5b] font-medium">
-                      {jobResult.quality_grade || 'HIGH_CONFIDENCE'}
+                      {effectiveResult.quality_grade || 'HIGH_CONFIDENCE'}
                     </div>
                   </div>
 
                   <div className="bg-[#222428] p-2.5 rounded border border-[#2d3034]">
                     <div className="text-[10px] uppercase text-[#a09f99]">Cadastral Validity</div>
                     <div className="font-mono text-base font-bold text-[#f4f3ef] mt-0.5">
-                      {jobResult.is_valid ? 'VALID (PASSED)' : 'FLAGGED'}
+                      {effectiveResult.is_valid ? 'VALID (PASSED)' : 'FLAGGED'}
                     </div>
                     <div className="text-[10px] text-[#a09f99]">Zero fatal clashes</div>
                   </div>
@@ -305,23 +342,23 @@ export const JobTimeline: React.FC<JobTimelineProps> = ({
                 <div className="bg-[#222428] p-2.5 rounded border border-[#2d3034] space-y-1">
                   <div className="text-[10px] uppercase text-[#a09f99] font-medium">Generated Entities</div>
                   <div className="text-xs font-semibold text-[#f4f3ef]">
-                    Structure: <span className="font-mono text-[#d97757]">{jobResult.created_entities?.building_code || 'BLD-AUTO'}</span>
+                    Structure: <span className="font-mono text-[#d97757]">{effectiveResult.created_entities?.building_code || 'BLD-AUTO'}</span>
                   </div>
                   <div className="text-[11px] text-[#d1d0c9]">
-                    {jobResult.created_entities?.units_count ?? 0} vertical property units stratified across{' '}
-                    {jobResult.created_entities?.floors_count ?? 0} floor levels.
+                    {effectiveResult.created_entities?.units_count ?? 0} vertical property units stratified across{' '}
+                    {effectiveResult.created_entities?.floors_count ?? 0} floor levels.
                   </div>
                 </div>
 
                 {/* Derived 3D ULPINs List */}
-                {jobResult.created_entities?.unit_ulpins && jobResult.created_entities.unit_ulpins.length > 0 && (
+                {effectiveResult.created_entities?.unit_ulpins && effectiveResult.created_entities.unit_ulpins.length > 0 && (
                   <div className="bg-[#222428] p-2.5 rounded border border-[#2d3034] space-y-1.5">
                     <div className="text-[10px] uppercase text-[#a09f99] font-medium flex items-center justify-between">
                       <span>Derived 3D ULPINs</span>
-                      <span className="font-mono text-[#d97757]">{jobResult.created_entities.unit_ulpins.length} Codes</span>
+                      <span className="font-mono text-[#d97757]">{effectiveResult.created_entities.unit_ulpins.length} Codes</span>
                     </div>
                     <div className="max-h-24 overflow-y-auto space-y-1 pr-1 font-mono text-[10px]">
-                      {jobResult.created_entities.unit_ulpins.map((ulpin: string) => (
+                      {effectiveResult.created_entities.unit_ulpins.map((ulpin: string) => (
                         <div
                           key={ulpin}
                           className="bg-[#1c1d20] px-2 py-0.5 rounded border border-[#34373d] text-[#f4f3ef] truncate select-all"
@@ -334,11 +371,27 @@ export const JobTimeline: React.FC<JobTimelineProps> = ({
                 )}
               </div>
             ) : isCompleted ? (
-              <div className="w-full h-44 bg-[#222428] rounded border border-[#2d3034] flex flex-col items-center justify-center p-4 text-center space-y-2">
-                <Loader2 className="w-5 h-5 text-[#d97757] animate-spin" />
-                <div className="text-xs font-semibold text-[#f4f3ef]">Finalizing Cadastral Artifacts…</div>
-                <p className="text-[11px] text-[#a09f99]">Retrieving derived 3D ULPIN registry and validation quality score from backend.</p>
-              </div>
+              hasTimedOut ? (
+                <div className="w-full h-44 bg-[#222428] rounded border border-[#2d3034] flex flex-col items-center justify-center p-4 text-center space-y-2">
+                  <CheckCircle2 className="w-6 h-6 text-[#4e8a5b]" />
+                  <div className="text-xs font-semibold text-[#f4f3ef]">Processing Completed</div>
+                  <p className="text-[11px] text-[#a09f99] max-w-xs">
+                    Cadastral orchestration finished successfully on the backend. Proceed to inspect the assembled 3D Digital Twin.
+                  </p>
+                  <button
+                    onClick={onViewDigitalTwin}
+                    className="px-3 py-1.5 bg-[#c86446] hover:bg-[#d97757] text-[#f4f3ef] rounded text-xs font-medium transition-colors"
+                  >
+                    Open 3D Digital Twin
+                  </button>
+                </div>
+              ) : (
+                <div className="w-full h-44 bg-[#222428] rounded border border-[#2d3034] flex flex-col items-center justify-center p-4 text-center space-y-2">
+                  <Loader2 className="w-5 h-5 text-[#d97757] animate-spin" />
+                  <div className="text-xs font-semibold text-[#f4f3ef]">Finalizing Cadastral Artifacts…</div>
+                  <p className="text-[11px] text-[#a09f99]">Retrieving derived 3D ULPIN registry and validation quality score from backend.</p>
+                </div>
+              )
             ) : (
               /* Active Transformation SVG */
               <div className="w-full h-44 bg-[#222428] rounded border border-[#2d3034] flex items-center justify-center p-3 relative overflow-hidden">

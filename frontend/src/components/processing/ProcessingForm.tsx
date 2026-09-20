@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { ParcelProcessJobRequest, LandParcel } from '../../types/api.ts';
+import {
+  resolveNumericStateCode,
+  resolveEvidenceSourceType,
+  EVIDENCE_SOURCE_OPTIONS,
+  EvidenceSourceType,
+} from '../../lib/cadastralCodes.ts';
 import { Play, Database, CheckCircle2, Layers, Building2 } from 'lucide-react';
 
 interface ProcessingFormProps {
@@ -17,20 +23,20 @@ export const ProcessingForm: React.FC<ProcessingFormProps> = ({
   availableParcels = [],
   onSelectParcel,
 }) => {
-  const [sourceType, setSourceType] = useState<string>('DRONE');
-  const [sourceReference, setSourceReference] = useState<string>('');
+  const [sourceType, setSourceType] = useState<string>('DRONE_PHOTOGRAMMETRY');
+  const [sourceReference, setSourceReference] = useState<string>('demo_26011_drone_survey.geojson');
 
   // Cadastral Identification Fields
-  const [parcelId, setParcelId] = useState<string>(activeParcel?.id || '');
-  const [surveyNumber, setSurveyNumber] = useState<string>(activeParcel?.survey_number || '');
-  const [stateCode, setStateCode] = useState<string>(activeParcel?.state_code || '');
-  const [districtCode, setDistrictCode] = useState<string>(activeParcel?.district_code || '');
+  const [parcelId, setParcelId] = useState<string>(activeParcel?.id || 'a9203ab6-88fa-42bc-8430-128e3c115ed0');
+  const [surveyNumber, setSurveyNumber] = useState<string>(activeParcel?.survey_number || 'DEMO-26011-001');
+  const [stateCode, setStateCode] = useState<string>(activeParcel?.state_code || 'MH');
+  const [districtCode, setDistrictCode] = useState<string>(activeParcel?.district_code || 'PUN');
   const [villageCode, setVillageCode] = useState<string>(activeParcel?.village_code || '');
 
   // 3D Strata Parameters (aligned with ParcelProcessJobRequest)
   const [totalHeightM, setTotalHeightM] = useState<number | ''>(18.0);
   const [groundElevationM, setGroundElevationM] = useState<number | ''>(
-    activeParcel?.base_elevation_m ?? activeParcel?.ground_elevation_amsl ?? ''
+    activeParcel?.base_elevation_m ?? activeParcel?.ground_elevation_amsl ?? 560.0
   );
   const [floorCount, setFloorCount] = useState<number | ''>(4);
   const [basementCount, setBasementCount] = useState<number | ''>(1);
@@ -46,7 +52,7 @@ export const ProcessingForm: React.FC<ProcessingFormProps> = ({
       if (activeParcel.district_code) setDistrictCode(activeParcel.district_code);
       if (activeParcel.village_code) setVillageCode(activeParcel.village_code);
       if (activeParcel.base_elevation_m != null || activeParcel.ground_elevation_amsl != null) {
-        setGroundElevationM(activeParcel.base_elevation_m ?? activeParcel.ground_elevation_amsl ?? '');
+        setGroundElevationM(activeParcel.base_elevation_m ?? activeParcel.ground_elevation_amsl ?? 560.0);
       }
     }
   }, [activeParcel]);
@@ -54,11 +60,16 @@ export const ProcessingForm: React.FC<ProcessingFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    const dCode = districtCode.trim() || undefined;
+    const resolvedSource = resolveEvidenceSourceType(sourceType);
+    const ref = sourceReference.trim() || 'demo_26011_drone_survey.geojson';
+
     const payload: ParcelProcessJobRequest = {
       parcel_id: parcelId.trim() || undefined,
       survey_number: surveyNumber.trim() || undefined,
-      state_code: stateCode ? (!isNaN(Number(stateCode)) ? Number(stateCode) : stateCode.trim()) : undefined,
-      district_code: districtCode.trim() || undefined,
+      state_code: resolveNumericStateCode(stateCode),
+      district_code: dCode,
+      revenue_district_code: dCode,
       village_code: villageCode.trim() || undefined,
       total_height_m: totalHeightM !== '' ? Number(totalHeightM) : undefined,
       ground_elevation_m: groundElevationM !== '' ? Number(groundElevationM) : undefined,
@@ -67,8 +78,8 @@ export const ProcessingForm: React.FC<ProcessingFormProps> = ({
       units_per_floor: unitsPerFloor || 2,
       auto_generate_strata: autoGenerateStrata,
       source_evidence: {
-        source_type: sourceType,
-        ...(sourceReference ? { source_reference: sourceReference } : {}),
+        source_type: resolvedSource,
+        source_reference: ref,
       },
       ...(activeParcel?.geometry_geojson ? { parcel_geojson: activeParcel.geometry_geojson } : {}),
     };
@@ -304,10 +315,11 @@ export const ProcessingForm: React.FC<ProcessingFormProps> = ({
               onChange={(e) => setSourceType(e.target.value)}
               className="w-full bg-[#222428] border border-[#34373d] text-[#f4f3ef] rounded p-2 focus:border-[#c86446] focus:outline-none"
             >
-              <option value="DRONE">Drone Photogrammetry (Oblique + Nadir)</option>
-              <option value="LIDAR">Terrestrial / Aerial LiDAR Point Cloud</option>
-              <option value="GEOJSON">Cadastral Vector Boundary (GeoJSON)</option>
-              <option value="CAD_FLOOR_PLAN">Architectural CAD / Floor Plan Vectors</option>
+              {EVIDENCE_SOURCE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
           </div>
 

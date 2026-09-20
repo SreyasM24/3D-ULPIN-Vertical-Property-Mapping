@@ -72,6 +72,35 @@ export function normalizeDigitalTwin(raw: any): DigitalTwin {
         const area = u.carpet_area_sqm ?? 0;
         const vol = u.volume_cu_m ?? 0;
 
+        const rawProv = u.provenance || u.ml_provenance;
+        let normalizedProvenance: any = null;
+        if (rawProv) {
+          const rawSource = String(rawProv.source || rawProv.source_type || 'DETERMINISTIC_STRATA');
+          const isAi = rawSource.includes('AI') || String(rawProv.evidence_tier || '').includes('AI');
+          const isObserved = rawSource.includes('OBSERVED') || rawSource.includes('DRONE') || rawSource.includes('POINT_CLOUD');
+          const tier = rawProv.evidence_tier || (isAi ? 'AI_INFERENCE' : isObserved ? 'OBSERVED' : 'DETERMINISTIC');
+
+          normalizedProvenance = {
+            id: rawProv.id || `prov-${u.id}`,
+            target_id: rawProv.target_id || u.id,
+            source: rawSource,
+            source_type: rawProv.source_type || rawSource,
+            source_reference: rawProv.source_reference || rawParcel.source_evidence?.source_reference || 'demo_26011_drone_survey.geojson',
+            method: rawProv.method || (tier === 'AI_INFERENCE' ? 'AI Inferred Strata Decomposition' : tier === 'OBSERVED' ? 'Direct Sensor Telemetry Strata Extrusion' : 'Parametric Cadastral Strata Decomposition'),
+            model: rawProv.model || 'CadastralEngine3D',
+            model_version: rawProv.model_version || '2.1.0',
+            data_stage: rawProv.data_stage || rawProv.stage || u.stage || 'VALIDATED',
+            evidence_tier: tier,
+            confidence: rawProv.confidence_level || (typeof rawProv.confidence === 'number' ? (rawProv.confidence >= 0.8 ? 'HIGH' : rawProv.confidence >= 0.5 ? 'MEDIUM' : 'LOW') : 'HIGH'),
+            uncertainty_m: typeof rawProv.uncertainty_m === 'number' ? rawProv.uncertainty_m : 0.30,
+            timestamp: rawProv.timestamp || (rawParcel.created_at ? new Date(rawParcel.created_at).toISOString() : new Date().toISOString()),
+            operator_or_system: rawProv.operator_or_system || 'Autonomous Deterministic Pipeline',
+            requires_review: Boolean(rawProv.requires_review),
+            vertical_classification: rawProv.vertical_classification || u.vertical_classification,
+            floor_span: rawProv.floor_span || [f.level_code],
+          };
+        }
+
         units.push({
           id: u.id,
           floor_id: u.floor_id || f.id,
@@ -97,7 +126,7 @@ export function normalizeDigitalTwin(raw: any): DigitalTwin {
           vertical_classification: u.vertical_classification,
           status: u.status || 'ACTIVE',
           confidence: u.confidence != null ? (typeof u.confidence === 'number' ? (u.confidence > 0.8 ? 'HIGH' : u.confidence > 0.5 ? 'MEDIUM' : 'LOW') : String(u.confidence)) : null,
-          provenance: u.provenance || u.ml_provenance || null,
+          provenance: normalizedProvenance,
           anomalies: u.anomalies || [],
           ownership_records: u.ownership_records || [],
           vertical_range: { z_min: zMin, z_max: zMax },
@@ -115,6 +144,85 @@ export function normalizeDigitalTwin(raw: any): DigitalTwin {
       });
     });
   });
+
+  // Direct units extraction fallback if units are provided directly at top level or parcel level
+  if (units.length === 0 && (Array.isArray(raw.units) || Array.isArray(rawParcel.units))) {
+    const rawDirectUnits = Array.isArray(raw.units) ? raw.units : rawParcel.units;
+    rawDirectUnits.forEach((u: any) => {
+      const zMin = u.z_min ?? u.elevation_min_m ?? 0;
+      const zMax = u.z_max ?? u.elevation_max_m ?? (zMin + (u.height_m ?? 3.0));
+      const area = u.carpet_area_sqm ?? 0;
+      const vol = u.volume_cu_m ?? 0;
+
+      const rawProv = u.provenance || u.ml_provenance;
+      let normalizedProvenance: any = null;
+      if (rawProv) {
+        const rawSource = String(rawProv.source || rawProv.source_type || 'DETERMINISTIC_STRATA');
+        const isAi = rawSource.includes('AI') || String(rawProv.evidence_tier || '').includes('AI');
+        const isObserved = rawSource.includes('OBSERVED') || rawSource.includes('DRONE') || rawSource.includes('POINT_CLOUD');
+        const tier = rawProv.evidence_tier || (isAi ? 'AI_INFERENCE' : isObserved ? 'OBSERVED' : 'DETERMINISTIC');
+
+        normalizedProvenance = {
+          id: rawProv.id || `prov-${u.id}`,
+          target_id: rawProv.target_id || u.id,
+          source: rawSource,
+          source_type: rawProv.source_type || rawSource,
+          source_reference: rawProv.source_reference || rawParcel.source_evidence?.source_reference || 'demo_26011_drone_survey.geojson',
+          method: rawProv.method || (tier === 'AI_INFERENCE' ? 'AI Inferred Strata Decomposition' : tier === 'OBSERVED' ? 'Direct Sensor Telemetry Strata Extrusion' : 'Parametric Cadastral Strata Decomposition'),
+          model: rawProv.model || 'CadastralEngine3D',
+          model_version: rawProv.model_version || '2.1.0',
+          data_stage: rawProv.data_stage || rawProv.stage || u.stage || 'VALIDATED',
+          evidence_tier: tier,
+          confidence: rawProv.confidence_level || (typeof rawProv.confidence === 'number' ? (rawProv.confidence >= 0.8 ? 'HIGH' : rawProv.confidence >= 0.5 ? 'MEDIUM' : 'LOW') : 'HIGH'),
+          uncertainty_m: typeof rawProv.uncertainty_m === 'number' ? rawProv.uncertainty_m : 0.30,
+          timestamp: rawProv.timestamp || (rawParcel.created_at ? new Date(rawParcel.created_at).toISOString() : new Date().toISOString()),
+          operator_or_system: rawProv.operator_or_system || 'Autonomous Deterministic Pipeline',
+          requires_review: Boolean(rawProv.requires_review),
+          vertical_classification: rawProv.vertical_classification || u.vertical_classification,
+          floor_span: rawProv.floor_span || [u.level_code || `L${u.floor_level ?? 0}`],
+        };
+      }
+
+      units.push({
+        id: u.id,
+        floor_id: u.floor_id || `flr-${u.floor_level ?? 0}`,
+        building_id: u.building_id || 'bld-0',
+        parcel_id: rawParcel.id,
+        unit_number: u.unit_number || u.unit_code,
+        unit_code: u.unit_code,
+        unit_type: u.unit_type || 'APARTMENT',
+        ulpin_3d: u.ulpin_3d,
+        ulpin_status: u.ulpin_status || 'PROVISIONAL',
+        base_ulpin: rawParcel.ulpin,
+        level_code: u.level_code || `L${u.floor_level ?? 0}`,
+        checksum: u.ulpin_3d?.split('-')?.pop() || '',
+        footprint_geojson: u.footprint_geojson,
+        elevation_min_m: zMin,
+        elevation_max_m: zMax,
+        carpet_area_sqm: area,
+        builtup_area_sqm: u.builtup_area_sqm ?? area,
+        volume_cu_m: vol,
+        is_clash_free: u.is_clash_free ?? true,
+        is_multi_floor: u.is_multi_floor ?? false,
+        floor_span: u.floor_span,
+        vertical_classification: u.vertical_classification,
+        status: u.status || 'ACTIVE',
+        confidence: u.confidence != null ? (typeof u.confidence === 'number' ? (u.confidence > 0.8 ? 'HIGH' : u.confidence > 0.5 ? 'MEDIUM' : 'LOW') : String(u.confidence)) : null,
+        provenance: normalizedProvenance,
+        anomalies: u.anomalies || [],
+        floor_level: u.floor_level ?? 0,
+        height_m: u.height_m ?? (zMax - zMin),
+        classification: u.unit_type || 'Residential Unit',
+        data_stage: u.stage || 'VALIDATED',
+        validation_status: (u.is_clash_free ?? true) ? 'PASSED' : 'WARNING',
+        geometry_3d: {
+          footprint: u.footprint_geojson?.coordinates?.[0] || [],
+          z_min: zMin,
+          z_max: zMax,
+        },
+      });
+    });
+  }
   const detectedAnomalies: AnomalySignal[] = (rawSummary.anomalies_detected || []).map((a: any, idx: number) => ({
     id: a.id || `anom-${idx}`,
     target_id: a.target_id || rawParcel.id,

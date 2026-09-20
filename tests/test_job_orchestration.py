@@ -272,3 +272,116 @@ def test_cancel_job_via_api(client, db_session: Session):
     data = resp.json()["data"]
     assert data["status"] == "CANCELLED"
     assert data["error_message"] == "OperatorAborted"
+
+
+def test_dynamic_input_propagation_and_strata_recalculation(client, sample_parcel_geojson):
+    """
+    Regression Test: Proves dynamic vertical input propagation.
+    Compares Test A (18m, 4 floors, 1 basement, 2 units/floor)
+    against Test B (30m, 8 floors, 2 basements, 4 units/floor).
+    Verifies that vertical parameters dynamically update building height,
+    floor levels, strata decomposition, unit counts, and 3D ULPIN registry.
+    """
+    # -------------------------------------------------------------
+    # 1. RUN TEST A: 18m, 4 floors above, 1 basement, 2 units/floor
+    # -------------------------------------------------------------
+    payload_a = {
+        "survey_number": "DEMO-PROPAGATION-001",
+        "state_code": 27,
+        "district_code": "PUN",
+        "parcel_geojson": sample_parcel_geojson,
+        "total_height_m": 18.0,
+        "ground_elevation_m": 500.0,
+        "floor_count": 4,
+        "basement_count": 1,
+        "units_per_floor": 2,
+        "auto_generate_strata": True,
+        "source_evidence": {
+            "source_type": "DRONE_PHOTOGRAMMETRY",
+            "source_reference": "survey_a.geojson"
+        }
+    }
+    resp_a = client.post("/api/v1/jobs/process-parcel", json=payload_a)
+    assert resp_a.status_code == status.HTTP_202_ACCEPTED
+    job_id_a = resp_a.json()["data"]["job_id"]
+
+    res_resp_a = client.get(f"/api/v1/jobs/{job_id_a}/result")
+    assert res_resp_a.status_code == status.HTTP_200_OK
+    res_a = res_resp_a.json()["data"]
+    assert res_a["status"] == "COMPLETED"
+
+    created_a = res_a["created_entities"]
+    parcel_id_a = created_a["parcel_id"]
+    assert created_a["floors_count"] == 5   # 4 above + 1 basement
+    assert created_a["units_count"] == 10   # 5 floors * 2 units/floor
+    assert len(created_a["unit_ulpins"]) == 10
+    ulpins_a = set(created_a["unit_ulpins"])
+
+    # Verify Digital Twin for Test A
+    dt_resp_a = client.get(f"/api/v1/parcels/{parcel_id_a}/digital-twin")
+    assert dt_resp_a.status_code == status.HTTP_200_OK
+    dt_data_a = dt_resp_a.json()["data"]
+    assert len(dt_data_a["parcel"]["buildings"]) == 1
+    bld_a = dt_data_a["parcel"]["buildings"][0]
+    assert bld_a["total_height_m"] == 18.0
+    assert len(bld_a["floors"]) == 5
+    assert dt_data_a["summary"]["total_units"] == 10
+    assert dt_data_a["summary"]["total_floors"] == 5
+
+    # -------------------------------------------------------------
+    # 2. RUN TEST B: 30m, 8 floors above, 2 basements, 4 units/floor
+    # Submitting updated vertical parameters for the SAME parcel
+    # -------------------------------------------------------------
+    payload_b = {
+        "parcel_id": parcel_id_a,
+        "survey_number": "DEMO-PROPAGATION-001",
+        "state_code": 27,
+        "district_code": "PUN",
+        "parcel_geojson": sample_parcel_geojson,
+        "total_height_m": 30.0,
+        "ground_elevation_m": 560.0,
+        "floor_count": 8,
+        "basement_count": 2,
+        "units_per_floor": 4,
+        "auto_generate_strata": True,
+        "source_evidence": {
+            "source_type": "DRONE_PHOTOGRAMMETRY",
+            "source_reference": "survey_b.geojson"
+        }
+    }
+    resp_b = client.post("/api/v1/jobs/process-parcel", json=payload_b)
+    assert resp_b.status_code == status.HTTP_202_ACCEPTED
+    job_id_b = resp_b.json()["data"]["job_id"]
+
+    res_resp_b = client.get(f"/api/v1/jobs/{job_id_b}/result")
+    assert res_resp_b.status_code == status.HTTP_200_OK
+    res_b = res_resp_b.json()["data"]
+    assert res_b["status"] == "COMPLETED"
+
+    created_b = res_b["created_entities"]
+    assert created_b["floors_count"] == 10  # 8 above + 2 basements
+    assert created_b["units_count"] == 40   # 10 floors * 4 units/floor
+    assert len(created_b["unit_ulpins"]) == 40
+    ulpins_b = set(created_b["unit_ulpins"])
+
+    # Verify Digital Twin for Test B
+    dt_resp_b = client.get(f"/api/v1/parcels/{parcel_id_a}/digital-twin")
+    assert dt_resp_b.status_code == status.HTTP_200_OK
+    dt_data_b = dt_resp_b.json()["data"]
+    bld_b = dt_data_b["parcel"]["buildings"][0]
+    assert bld_b["total_height_m"] == 30.0
+    assert bld_b["ground_elevation_m"] == 560.0
+    assert len(bld_b["floors"]) == 10
+    assert dt_data_b["summary"]["total_units"] == 40
+    assert dt_data_b["summary"]["total_floors"] == 10
+
+    # -------------------------------------------------------------
+    # 3. VERIFY MATERIAL DIVERGENCE BETWEEN TEST A AND TEST B
+    # -------------------------------------------------------------
+    assert bld_b["total_height_m"] != bld_a["total_height_m"]
+    assert created_b["floors_count"] != created_a["floors_count"]
+    assert created_b["units_count"] != created_a["units_count"]
+    # Ensure newly created 3D ULPIN set reflects the 40 stratified units
+    assert ulpins_b != ulpins_a
+    assert len(ulpins_b - ulpins_a) == 30  # 30 new 3D ULPINs registered across expanded strata
+

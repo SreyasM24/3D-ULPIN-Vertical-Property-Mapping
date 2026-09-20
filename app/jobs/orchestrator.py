@@ -70,7 +70,12 @@ class CadastralProcessingOrchestrator:
             box_slice = shapely.geometry.box(minx + i * dx, miny, minx + (i + 1) * dx, maxy)
             part = poly.intersection(box_slice)
             if not part.is_empty and part.is_valid:
-                partitions.append(GeoJSONPolygon(**shapely.geometry.mapping(part)).model_dump())
+                if part.geom_type == "MultiPolygon":
+                    part = max(part.geoms, key=lambda g: g.area)
+                if part.geom_type == "Polygon":
+                    partitions.append(GeoJSONPolygon(**shapely.geometry.mapping(part)).model_dump())
+                else:
+                    partitions.append(GeoJSONPolygon(**shapely.geometry.mapping(poly)).model_dump())
             else:
                 partitions.append(GeoJSONPolygon(**shapely.geometry.mapping(poly)).model_dump())
         return partitions
@@ -271,9 +276,12 @@ class CadastralProcessingOrchestrator:
             ml_inputs = {
                 "footprint_geojson": bld_footprint,
                 "height_m": payload.get("total_height_m"),
+                "total_height_m": payload.get("total_height_m"),
                 "ground_elevation_m": payload.get("ground_elevation_m", 0.0),
                 "floor_count": payload.get("floor_count"),
+                "floors_above_ground": payload.get("floor_count"),
                 "basement_count": payload.get("basement_count", 0),
+                "basement_floors": payload.get("basement_count", 0),
                 **(payload.get("source_evidence") or {})
             }
             ml_result = ml_pipeline.process(ml_inputs)
@@ -299,23 +307,31 @@ class CadastralProcessingOrchestrator:
                 select(Building).where(Building.parcel_id == parcel.id)
             ).scalars().first()
 
+            above_count = sum(1 for s in strata_levels if "B" not in s.level_code) or (payload.get("floor_count") or 3)
+            base_count = sum(1 for s in strata_levels if "B" in s.level_code) or (payload.get("basement_count", 0) or 0)
+            height_prov = next((p for p in ml_result.provenance if "HEIGHT" in p.source_id), None)
+            floor_prov = next((p for p in ml_result.provenance if "FLOOR" in p.source_id), None)
+            bld_spatial_metadata = {
+                "height_source": height_prov.source_type.value if height_prov else "OBSERVED_SURVEY_METADATA",
+                "height_method": height_prov.method if height_prov else "EXPLICIT_METADATA",
+                "floor_source": floor_prov.source_type.value if floor_prov else "DETERMINISTIC_BASELINE",
+                "floor_method": floor_prov.method if floor_prov else "PARAMETRIC_STRATA_DECOMPOSITION",
+                "confidence": ml_result.confidence,
+                "uncertainty_m": ml_result.uncertainty_m,
+                "requires_review": ml_result.confidence < 0.70 or (height_prov and "AI" in height_prov.source_type.value)
+            }
+
             if existing_bld:
                 building = existing_bld
+                building.total_height_m = estimated_height
+                building.floors_above_ground = max(1, above_count)
+                building.basement_floors = base_count
+                building.ground_elevation_m = ground_z
+                building.footprint_geojson = bld_footprint
+                building.spatial_metadata = bld_spatial_metadata
+                db.flush()
             else:
                 bld_code = f"BLD-{job_id[:6].upper()}"
-                above_count = sum(1 for s in strata_levels if "B" not in s.level_code) or 3
-                base_count = sum(1 for s in strata_levels if "B" in s.level_code) or 0
-                height_prov = next((p for p in ml_result.provenance if "HEIGHT" in p.source_id), None)
-                floor_prov = next((p for p in ml_result.provenance if "FLOOR" in p.source_id), None)
-                bld_spatial_metadata = {
-                    "height_source": height_prov.source_type.value if height_prov else "OBSERVED_SURVEY_METADATA",
-                    "height_method": height_prov.method if height_prov else "EXPLICIT_METADATA",
-                    "floor_source": floor_prov.source_type.value if floor_prov else "DETERMINISTIC_BASELINE",
-                    "floor_method": floor_prov.method if floor_prov else "PARAMETRIC_STRATA_DECOMPOSITION",
-                    "confidence": ml_result.confidence,
-                    "uncertainty_m": ml_result.uncertainty_m,
-                    "requires_review": ml_result.confidence < 0.70 or (height_prov and "AI" in height_prov.source_type.value)
-                }
                 bld_create = BuildingCreate(
                     parcel_id=parcel.id,
                     building_name=f"Cadastral Structure {bld_code}",
@@ -331,22 +347,34 @@ class CadastralProcessingOrchestrator:
                 building = CadastreService.create_building(db, bld_create)
                 newly_created_building = building
 
-            # Create Floors and Units if auto_generate_strata is True and floors don't exist yet
+            # Update parcel ground elevation if specified in payload
+            if payload.get("ground_elevation_m") is not None:
+                parcel.base_elevation_m = ground_z
+                db.flush()
+
+            # Refresh or replace Floor Levels and Vertical Units
             existing_floors = db.execute(
                 select(FloorLevel).where(FloorLevel.building_id == building.id)
             ).scalars().all()
+
+            if payload.get("auto_generate_strata", True) and existing_floors:
+                for fl in existing_floors:
+                    db.delete(fl)
+                db.commit()
+                existing_floors = []
 
             created_floors: List[FloorLevel] = list(existing_floors)
             created_units: List[VerticalUnit] = []
 
             if not existing_floors and payload.get("auto_generate_strata", True):
+                units_per_floor = int(payload.get("units_per_floor") or 2)
                 # Propose candidate cadastre
                 candidate_cadastre = VerticalCadastreFeatureService.generate_candidate_cadastre(
                     footprint_geojson=bld_footprint,
                     ground_elevation_m=ground_z,
                     total_height_m=estimated_height,
                     strata_levels=strata_levels,
-                    units_per_floor=payload.get("units_per_floor", 2),
+                    units_per_floor=units_per_floor,
                     parent_parcel_id=parcel.id,
                     building_code=building.building_code
                 )
@@ -374,8 +402,11 @@ class CadastralProcessingOrchestrator:
                 )
 
                 floor_map = {fl.level_code: fl for fl in created_floors}
-                units_per_floor = payload.get("units_per_floor", 2)
                 unit_footprints = cls._partition_footprint(bld_footprint, units_per_floor)
+
+                src_meta = payload.get("source_evidence") or {}
+                src_type = src_meta.get("source_type") or "DRONE_PHOTOGRAMMETRY"
+                src_ref = src_meta.get("source_reference") or "survey_evidence.geojson"
 
                 floor_units_tracker: Dict[str, int] = {}
                 for u_data in candidate_cadastre["candidate_units"]:
@@ -402,9 +433,11 @@ class CadastralProcessingOrchestrator:
                             floor_span=u_data.get("floor_span"),
                             spatial_metadata={
                                 "classification": u_data.get("classification"),
-                                "source": u_data.get("source"),
-                                "confidence": u_data.get("confidence"),
-                                "uncertainty_m": u_data.get("uncertainty_m"),
+                                "source": src_type,
+                                "source_type": src_type,
+                                "source_reference": src_ref,
+                                "confidence": u_data.get("confidence", 0.85),
+                                "uncertainty_m": u_data.get("uncertainty_m", 0.30),
                                 "stage": u_data.get("stage", "ESTIMATED")
                             }
                         )

@@ -252,7 +252,7 @@ def get_job_result(job_id: str, db: Session = Depends(get_db)):
             "quality_grade": res.get("quality_grade"),
             "is_valid": res.get("is_valid")
         },
-        digital_twin_url=f"/api/v1/spatial/digital-twin/{parcel_id}" if parcel_id else None,
+        digital_twin_url=f"/api/v1/parcels/{parcel_id}/digital-twin" if parcel_id else None,
         anomalies=res.get("anomalies", []),
         artifacts=res
     )

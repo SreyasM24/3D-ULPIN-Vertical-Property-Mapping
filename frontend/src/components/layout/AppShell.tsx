@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavigationTab } from '../../types/api.ts';
+import { NavigationTab, LandParcel } from '../../types/api.ts';
 import { TopBar } from './TopBar.tsx';
 import {
   LayoutDashboard,
@@ -22,6 +22,9 @@ interface AppShellProps {
   activeCrs?: string;
   parcelNumber?: string;
   validationBadge?: string;
+  parcels?: LandParcel[];
+  selectedParcel?: LandParcel | null;
+  onSelectParcel?: (parcel: LandParcel) => void;
 }
 
 export const AppShell: React.FC<AppShellProps> = ({
@@ -33,6 +36,9 @@ export const AppShell: React.FC<AppShellProps> = ({
   activeCrs,
   parcelNumber,
   validationBadge,
+  parcels = [],
+  selectedParcel,
+  onSelectParcel,
 }) => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -75,6 +81,9 @@ export const AppShell: React.FC<AppShellProps> = ({
         isBackendConnected={isBackendConnected}
         activeCrs={activeCrs}
         parcelNumber={parcelNumber}
+        parcels={parcels}
+        selectedParcel={selectedParcel}
+        onSelectParcel={onSelectParcel}
       />
 
       {/* Main Workspace Body */}

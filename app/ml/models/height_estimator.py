@@ -201,7 +201,7 @@ class HeightEstimatorModel(BaseFeatureModel):
                     }
 
         bld_meta = inputs.get("building_metadata") or {}
-        explicit_height = bld_meta.get("total_height_m") or inputs.get("total_height_m")
+        explicit_height = bld_meta.get("total_height_m") or inputs.get("total_height_m") or inputs.get("height_m")
         if explicit_height is not None and float(explicit_height) > 0.0:
             h = round(float(explicit_height), 2)
             ground_z = float(bld_meta.get("ground_elevation_m", inputs.get("ground_elevation_m", 0.0)) or 0.0)

@@ -143,10 +143,13 @@ export const TemporalChangePanel: React.FC<TemporalChangePanelProps> = ({
 
       {/* No report state */}
       {!report && !isLoading && !error && (
-        <div className="p-3 bg-[#18191b] rounded border border-[#2d3034] text-center text-[#a09f99] space-y-1">
-          <Activity className="w-5 h-5 mx-auto text-[#5c7080] stroke-1" />
-          <p className="text-[11px]">
-            Execute temporal comparison to audit changes between registered cadastral baseline and subsequent survey/AI proposals.
+        <div className="p-4 bg-[#18191b] rounded border border-[#2d3034] text-center space-y-2">
+          <Activity className="w-5 h-5 mx-auto text-[#d97757]" />
+          <div className="text-xs font-semibold text-[#f4f3ef]">
+            No temporal comparison has been run for this property.
+          </div>
+          <p className="text-[11px] text-[#a09f99] max-w-xs mx-auto leading-relaxed">
+            Click <strong className="text-[#f4f3ef]">"Run Audit"</strong> above to evaluate 3D geometric shifts, vertical strata additions, and volumetric deltas against subsequent survey epochs or AI proposals.
           </p>
         </div>
       )}

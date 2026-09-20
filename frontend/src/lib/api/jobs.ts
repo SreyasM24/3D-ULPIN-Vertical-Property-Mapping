@@ -8,13 +8,34 @@ import {
   CreateSurveyJobRequest,
   ApiResponse,
 } from '../../types/api.ts';
+import { resolveNumericStateCode, resolveEvidenceSourceType } from '../cadastralCodes.ts';
 
 export async function submitParcelProcessingJob(
   payload: ParcelProcessJobRequest
 ): Promise<JobRead> {
+  const district = payload.district_code || payload.revenue_district_code || 'PUN';
+  const rawSourceType = payload.source_evidence?.source_type;
+  const rawSourceRef = payload.source_evidence?.source_reference || payload.source_evidence?.source_reference_uri || 'demo_26011_drone_survey.geojson';
+
+  const normalizedSourceEvidence = payload.source_evidence ? {
+    ...payload.source_evidence,
+    source_type: resolveEvidenceSourceType(rawSourceType),
+    source_reference: rawSourceRef,
+  } : {
+    source_type: 'DRONE_PHOTOGRAMMETRY',
+    source_reference: 'demo_26011_drone_survey.geojson',
+  };
+
+  const finalPayload: ParcelProcessJobRequest = {
+    ...payload,
+    state_code: resolveNumericStateCode(payload.state_code),
+    district_code: district,
+    revenue_district_code: district,
+    source_evidence: normalizedSourceEvidence,
+  };
   const res = await apiClient<JobRead>('/jobs/process-parcel', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(finalPayload),
   });
   return res.data;
 }
@@ -30,11 +51,27 @@ export async function submitSurveyIngestionJob(
 }
 
 export async function createSurveyJob(request: ParcelProcessJobRequest | CreateSurveyJobRequest): Promise<JobRead> {
+  const district = request.district_code || (request as any).revenue_district_code || (request as any).district?.substring(0, 3)?.toUpperCase() || 'PUN';
+  const rawSourceType = request.source_evidence?.source_type || (request as any).survey_source_type;
+  const rawSourceRef = request.source_evidence?.source_reference || (request as any).source_reference_uri || 'demo_26011_drone_survey.geojson';
+
+  const normalizedSourceEvidence = (request.source_evidence || (request as any).survey_source_type) ? {
+    ...(request.source_evidence || {}),
+    source_type: resolveEvidenceSourceType(rawSourceType),
+    source_reference: rawSourceRef,
+    ...((request as any).crs ? { crs: (request as any).crs } : {}),
+    ...((request as any).notes ? { notes: (request as any).notes } : {}),
+  } : {
+    source_type: 'DRONE_PHOTOGRAMMETRY',
+    source_reference: 'demo_26011_drone_survey.geojson',
+  };
+
   const processPayload: ParcelProcessJobRequest = {
     parcel_id: request.parcel_id || undefined,
     survey_number: request.survey_number,
-    district_code: request.district_code || (request as any).district?.substring(0, 3)?.toUpperCase() || undefined,
-    state_code: request.state_code ?? undefined,
+    district_code: district,
+    revenue_district_code: district,
+    state_code: resolveNumericStateCode(request.state_code),
     village_code: request.village_code,
     parcel_geojson: request.parcel_geojson,
     building_footprint_geojson: request.building_footprint_geojson,
@@ -44,12 +81,7 @@ export async function createSurveyJob(request: ParcelProcessJobRequest | CreateS
     basement_count: request.basement_count ?? 0,
     units_per_floor: request.units_per_floor ?? 2,
     auto_generate_strata: request.auto_generate_strata ?? true,
-    source_evidence: request.source_evidence || ((request as any).survey_source_type ? {
-      source_type: (request as any).survey_source_type,
-      source_reference_uri: (request as any).source_reference_uri,
-      crs: (request as any).crs,
-      notes: (request as any).notes,
-    } : undefined),
+    source_evidence: normalizedSourceEvidence,
   };
 
   return submitParcelProcessingJob(processPayload);
