@@ -1,0 +1,1082 @@
+{
+  "type": "FeatureCollection",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "timestamp": "2016-06-22T21:27:38Z",
+        "version": "1",
+        "changeset": "5404",
+        "user": "Derick",
+        "uid": "43",
+        "HGIS_OID": "1013432.0",
+        "building": "yes",
+        "type": "None",
+        "id": "way/75111",
+        "area": "None",
+        "QAStatus": "Original_Building",
+        "HGISOID": 1013432.0,
+        "TaskArea": "West",
+        "Revision1": "No",
+        "Shape_Leng": 0.000178,
+        "Shape_Area": 0.0,
+        "partialBuilding": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.70267489999998,
+              -22.95486059999996,
+              0.0
+            ],
+            [
+              -43.702641599999936,
+              -22.95481769999998,
+              0.0
+            ],
+            [
+              -43.70261409999995,
+              -22.954840399999966,
+              0.0
+            ],
+            [
+              -43.702648599999975,
+              -22.95488219999993,
+              0.0
+            ],
+            [
+              -43.70267489999998,
+              -22.95486059999996,
+              0.0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timestamp": "2016-07-13T18:58:22Z",
+        "version": "2",
+        "changeset": "10527",
+        "user": "knash",
+        "uid": "1099",
+        "HGIS_OID": "1013425.0",
+        "building": "yes",
+        "type": "None",
+        "id": "way/76106",
+        "area": "None",
+        "QAStatus": "Modified_Original_Rev1",
+        "HGISOID": 1013425.0,
+        "TaskArea": "West",
+        "Revision1": "Yes",
+        "Shape_Leng": 0.000504,
+        "Shape_Area": 0.0,
+        "partialBuilding": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.70255449999996,
+              -22.954539099999977,
+              0.0
+            ],
+            [
+              -43.70250579999998,
+              -22.95449789999998,
+              0.0
+            ],
+            [
+              -43.702409699999976,
+              -22.95458039999994,
+              0.0
+            ],
+            [
+              -43.7024952,
+              -22.95467,
+              0.0
+            ],
+            [
+              -43.702534699999944,
+              -22.954632299999957,
+              0.0
+            ],
+            [
+              -43.70249559999996,
+              -22.954591499999935,
+              0.0
+            ],
+            [
+              -43.70255449999996,
+              -22.954539099999977,
+              0.0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timestamp": "2016-06-22T21:41:19Z",
+        "version": "1",
+        "changeset": "5404",
+        "user": "Derick",
+        "uid": "43",
+        "HGIS_OID": "1013430.0",
+        "building": "yes",
+        "type": "None",
+        "id": "way/86912",
+        "area": "None",
+        "QAStatus": "Modified_Original_Rev1",
+        "HGISOID": 1013430.0,
+        "TaskArea": "West",
+        "Revision1": "Yes",
+        "Shape_Leng": 0.000168,
+        "Shape_Area": 0.0,
+        "partialBuilding": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.70268779999998,
+              -22.954745699999933,
+              0.0
+            ],
+            [
+              -43.70265909999995,
+              -22.9547108,
+              0.0
+            ],
+            [
+              -43.702629499999944,
+              -22.95473789999994,
+              0.0
+            ],
+            [
+              -43.702660099999946,
+              -22.95477109999996,
+              0.0
+            ],
+            [
+              -43.70268779999998,
+              -22.954745699999933,
+              0.0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timestamp": "2016-07-13T18:49:10Z",
+        "version": "2",
+        "changeset": "10503",
+        "user": "knash",
+        "uid": "1099",
+        "HGIS_OID": "1013437.0",
+        "building": "yes",
+        "type": "None",
+        "id": "way/97393",
+        "area": "None",
+        "QAStatus": "Original_Building",
+        "HGISOID": 1013437.0,
+        "TaskArea": "West",
+        "Revision1": "No",
+        "Shape_Leng": 0.00056,
+        "Shape_Area": 0.0,
+        "partialBuilding": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.70302349999997,
+              -22.955025199999966,
+              0.0
+            ],
+            [
+              -43.702997799999935,
+              -22.954994599999964,
+              0.0
+            ],
+            [
+              -43.70281389999997,
+              -22.955149,
+              0.0
+            ],
+            [
+              -43.70283959999995,
+              -22.95517959999995,
+              0.0
+            ],
+            [
+              -43.70293179999993,
+              -22.955102199999942,
+              0.0
+            ],
+            [
+              -43.70302349999997,
+              -22.955025199999966,
+              0.0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timestamp": "2016-06-22T21:56:12Z",
+        "version": "1",
+        "changeset": "5405",
+        "user": "Derick",
+        "uid": "43",
+        "HGIS_OID": "1013429.0",
+        "building": "yes",
+        "type": "None",
+        "id": "way/99738",
+        "area": "None",
+        "QAStatus": "Modified_Original_Rev1",
+        "HGISOID": 1013429.0,
+        "TaskArea": "West",
+        "Revision1": "Yes",
+        "Shape_Leng": 0.000188,
+        "Shape_Area": 0.0,
+        "partialBuilding": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.70265909999995,
+              -22.9547108,
+              0.0
+            ],
+            [
+              -43.70268779999998,
+              -22.954745699999933,
+              0.0
+            ],
+            [
+              -43.702724599999954,
+              -22.954712,
+              0.0
+            ],
+            [
+              -43.702694099999974,
+              -22.95467869999993,
+              0.0
+            ],
+            [
+              -43.70265909999995,
+              -22.9547108,
+              0.0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timestamp": "2016-06-22T22:10:06Z",
+        "version": "1",
+        "changeset": "5405",
+        "user": "Derick",
+        "uid": "43",
+        "HGIS_OID": "1013441.0",
+        "building": "yes",
+        "type": "None",
+        "id": "way/111057",
+        "area": "None",
+        "QAStatus": "Original_Building",
+        "HGISOID": 1013441.0,
+        "TaskArea": "West",
+        "Revision1": "No",
+        "Shape_Leng": 0.000289,
+        "Shape_Area": 0.0,
+        "partialBuilding": 1
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.70305509999997,
+              -22.95525859999998,
+              0.0
+            ],
+            [
+              -43.70302559999993,
+              -22.955223399999966,
+              0.0
+            ],
+            [
+              -43.702975310171425,
+              -22.95526537471135,
+              0.0
+            ],
+            [
+              -43.703046290062204,
+              -22.955265955192406,
+              0.0
+            ],
+            [
+              -43.70305509999997,
+              -22.95525859999998,
+              0.0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timestamp": "2016-06-22T22:13:02Z",
+        "version": "1",
+        "changeset": "5405",
+        "user": "Derick",
+        "uid": "43",
+        "HGIS_OID": "1013433.0",
+        "building": "yes",
+        "type": "None",
+        "id": "way/113414",
+        "area": "None",
+        "QAStatus": "Original_Building",
+        "HGISOID": 1013433.0,
+        "TaskArea": "West",
+        "Revision1": "No",
+        "Shape_Leng": 0.000302,
+        "Shape_Area": 0.0,
+        "partialBuilding": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.70284319999996,
+              -22.955005,
+              0.0
+            ],
+            [
+              -43.702788099999964,
+              -22.955050899999947,
+              0.0
+            ],
+            [
+              -43.70283879999994,
+              -22.955112,
+              0.0
+            ],
+            [
+              -43.702894,
+              -22.95506629999994,
+              0.0
+            ],
+            [
+              -43.70284319999996,
+              -22.955005,
+              0.0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timestamp": "2016-06-22T22:14:12Z",
+        "version": "1",
+        "changeset": "5405",
+        "user": "Derick",
+        "uid": "43",
+        "HGIS_OID": "1013422.0",
+        "building": "yes",
+        "type": "None",
+        "id": "way/114365",
+        "area": "None",
+        "QAStatus": "Modified_Original_Rev1",
+        "HGISOID": 1013422.0,
+        "TaskArea": "West",
+        "Revision1": "Yes",
+        "Shape_Leng": 0.000196,
+        "Shape_Area": 0.0,
+        "partialBuilding": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.70252929999998,
+              -22.95477919999996,
+              0.0
+            ],
+            [
+              -43.702559099999974,
+              -22.954818899999964,
+              0.0
+            ],
+            [
+              -43.70259719999996,
+              -22.954786299999967,
+              0.0
+            ],
+            [
+              -43.7025649,
+              -22.95474859999996,
+              0.0
+            ],
+            [
+              -43.70252929999998,
+              -22.95477919999996,
+              0.0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timestamp": "2016-07-13T18:58:22Z",
+        "version": "2",
+        "changeset": "10527",
+        "user": "knash",
+        "uid": "1099",
+        "HGIS_OID": "1013436.0",
+        "building": "yes",
+        "type": "None",
+        "id": "way/123834",
+        "area": "None",
+        "QAStatus": "Modified_Original_Rev1",
+        "HGISOID": 1013436.0,
+        "TaskArea": "West",
+        "Revision1": "Yes",
+        "Shape_Leng": 0.000421,
+        "Shape_Area": 0.0,
+        "partialBuilding": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.70269479999996,
+              -22.955001399999958,
+              0.0
+            ],
+            [
+              -43.70273139999995,
+              -22.954975799999943,
+              0.0
+            ],
+            [
+              -43.70276719999998,
+              -22.954949,
+              0.0
+            ],
+            [
+              -43.70278549999995,
+              -22.954935399999954,
+              0.0
+            ],
+            [
+              -43.70271279999997,
+              -22.95485569999994,
+              0.0
+            ],
+            [
+              -43.70265449999994,
+              -22.95489649999996,
+              0.0
+            ],
+            [
+              -43.702682599999946,
+              -22.954935899999953,
+              0.0
+            ],
+            [
+              -43.70266429999998,
+              -22.954962099999932,
+              0.0
+            ],
+            [
+              -43.70269479999996,
+              -22.955001399999958,
+              0.0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timestamp": "2016-07-13T18:58:22Z",
+        "version": "2",
+        "changeset": "10527",
+        "user": "knash",
+        "uid": "1099",
+        "HGIS_OID": "1013423.0",
+        "building": "yes",
+        "type": "None",
+        "id": "way/141310",
+        "area": "None",
+        "QAStatus": "Modified_Original_Rev1",
+        "HGISOID": 1013423.0,
+        "TaskArea": "West",
+        "Revision1": "Yes",
+        "Shape_Leng": 0.000273,
+        "Shape_Area": 0.0,
+        "partialBuilding": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.702385,
+              -22.954579399999943,
+              0.0
+            ],
+            [
+              -43.70243759999994,
+              -22.954529799999932,
+              0.0
+            ],
+            [
+              -43.70238959999995,
+              -22.95448669999996,
+              0.0
+            ],
+            [
+              -43.702337099999966,
+              -22.9545362,
+              0.0
+            ],
+            [
+              -43.702385,
+              -22.954579399999943,
+              0.0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timestamp": "2016-07-13T18:58:22Z",
+        "version": "2",
+        "changeset": "10527",
+        "user": "knash",
+        "uid": "1099",
+        "HGIS_OID": "1019428.0",
+        "building": "yes",
+        "type": "None",
+        "id": "way/165438",
+        "area": "None",
+        "QAStatus": "Modified_Original_Rev1",
+        "HGISOID": 1019428.0,
+        "TaskArea": "West",
+        "Revision1": "Yes",
+        "Shape_Leng": 0.000585,
+        "Shape_Area": 0.0,
+        "partialBuilding": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.70212159999994,
+              -22.954063299999973,
+              0.0
+            ],
+            [
+              -43.70208679999996,
+              -22.954088199999944,
+              0.0
+            ],
+            [
+              -43.70206889999997,
+              -22.954067,
+              0.0
+            ],
+            [
+              -43.70196139999996,
+              -22.954143899999963,
+              0.0
+            ],
+            [
+              -43.70203689999994,
+              -22.954233599999952,
+              0.0
+            ],
+            [
+              -43.702179299999955,
+              -22.95413179999997,
+              0.0
+            ],
+            [
+              -43.70212159999994,
+              -22.954063299999973,
+              0.0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timestamp": "2016-07-13T18:49:05Z",
+        "version": "1",
+        "changeset": "10503",
+        "user": "knash",
+        "uid": "1099",
+        "HGIS_OID": "None",
+        "building": "yes",
+        "type": "None",
+        "id": "way/442926",
+        "area": "None",
+        "QAStatus": "New_Building_Rev1",
+        "HGISOID": 0.0,
+        "TaskArea": "West",
+        "Revision1": "Yes",
+        "Shape_Leng": 0.000239,
+        "Shape_Area": 0.0,
+        "partialBuilding": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.703009399999985,
+              -22.955221199999983,
+              0.0
+            ],
+            [
+              -43.702965,
+              -22.955176,
+              0.0
+            ],
+            [
+              -43.702918299999965,
+              -22.95520179999994,
+              0.0
+            ],
+            [
+              -43.702962699999944,
+              -22.95525129999993,
+              0.0
+            ],
+            [
+              -43.703009399999985,
+              -22.955221199999983,
+              0.0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timestamp": "2016-07-13T18:49:06Z",
+        "version": "1",
+        "changeset": "10503",
+        "user": "knash",
+        "uid": "1099",
+        "HGIS_OID": "None",
+        "building": "yes",
+        "type": "None",
+        "id": "way/442928",
+        "area": "None",
+        "QAStatus": "New_Building_Rev1",
+        "HGISOID": 0.0,
+        "TaskArea": "West",
+        "Revision1": "Yes",
+        "Shape_Leng": 0.000368,
+        "Shape_Area": 0.0,
+        "partialBuilding": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.70293179999993,
+              -22.955102199999942,
+              0.0
+            ],
+            [
+              -43.7029744,
+              -22.955143799999973,
+              0.0
+            ],
+            [
+              -43.7030724,
+              -22.955066399999964,
+              0.0
+            ],
+            [
+              -43.70302349999997,
+              -22.955025199999966,
+              0.0
+            ],
+            [
+              -43.70293179999993,
+              -22.955102199999942,
+              0.0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timestamp": "2016-07-13T18:58:20Z",
+        "version": "1",
+        "changeset": "10527",
+        "user": "knash",
+        "uid": "1099",
+        "HGIS_OID": "None",
+        "building": "yes",
+        "type": "None",
+        "id": "way/442974",
+        "area": "None",
+        "QAStatus": "New_Building_Rev1",
+        "HGISOID": 0.0,
+        "TaskArea": "West",
+        "Revision1": "Yes",
+        "Shape_Leng": 0.000236,
+        "Shape_Area": 0.0,
+        "partialBuilding": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.70273139999995,
+              -22.954975799999943,
+              0.0
+            ],
+            [
+              -43.7027802,
+              -22.955025699999965,
+              0.0
+            ],
+            [
+              -43.702820799999984,
+              -22.95499949999993,
+              0.0
+            ],
+            [
+              -43.70276719999998,
+              -22.954949,
+              0.0
+            ],
+            [
+              -43.70273139999995,
+              -22.954975799999943,
+              0.0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timestamp": "2016-07-13T18:58:20Z",
+        "version": "1",
+        "changeset": "10527",
+        "user": "knash",
+        "uid": "1099",
+        "HGIS_OID": "None",
+        "building": "yes",
+        "type": "None",
+        "id": "way/442975",
+        "area": "None",
+        "QAStatus": "New_Building_Rev1",
+        "HGISOID": 0.0,
+        "TaskArea": "West",
+        "Revision1": "Yes",
+        "Shape_Leng": 0.000185,
+        "Shape_Area": 0.0,
+        "partialBuilding": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.70259719999996,
+              -22.954786299999967,
+              0.0
+            ],
+            [
+              -43.702629799999954,
+              -22.95476179999997,
+              0.0
+            ],
+            [
+              -43.702589099999955,
+              -22.954720599999973,
+              0.0
+            ],
+            [
+              -43.7025649,
+              -22.95474859999996,
+              0.0
+            ],
+            [
+              -43.70259719999996,
+              -22.954786299999967,
+              0.0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timestamp": "2016-07-13T18:58:20Z",
+        "version": "1",
+        "changeset": "10527",
+        "user": "knash",
+        "uid": "1099",
+        "HGIS_OID": "None",
+        "building": "yes",
+        "type": "None",
+        "id": "way/442976",
+        "area": "None",
+        "QAStatus": "New_Building_Rev1",
+        "HGISOID": 0.0,
+        "TaskArea": "West",
+        "Revision1": "Yes",
+        "Shape_Leng": 0.000296,
+        "Shape_Area": 0.0,
+        "partialBuilding": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.70236139999997,
+              -22.954488499999968,
+              0.0
+            ],
+            [
+              -43.702312699999936,
+              -22.95444169999996,
+              0.0
+            ],
+            [
+              -43.70225369999997,
+              -22.954494199999942,
+              0.0
+            ],
+            [
+              -43.70230049999998,
+              -22.954542799999956,
+              0.0
+            ],
+            [
+              -43.70236139999997,
+              -22.954488499999968,
+              0.0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timestamp": "2016-07-13T18:58:20Z",
+        "version": "1",
+        "changeset": "10527",
+        "user": "knash",
+        "uid": "1099",
+        "HGIS_OID": "None",
+        "building": "yes",
+        "type": "None",
+        "id": "way/442977",
+        "area": "None",
+        "QAStatus": "New_Building_Rev1",
+        "HGISOID": 0.0,
+        "TaskArea": "West",
+        "Revision1": "Yes",
+        "Shape_Leng": 0.000371,
+        "Shape_Area": 0.0,
+        "partialBuilding": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.70218459999995,
+              -22.954651399999932,
+              0.0
+            ],
+            [
+              -43.70213579999995,
+              -22.954615799999942,
+              0.0
+            ],
+            [
+              -43.70204639999997,
+              -22.954701899999975,
+              0.0
+            ],
+            [
+              -43.70208909999997,
+              -22.954739399999937,
+              0.0
+            ],
+            [
+              -43.70218459999995,
+              -22.954651399999932,
+              0.0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timestamp": "2016-07-13T18:58:20Z",
+        "version": "1",
+        "changeset": "10527",
+        "user": "knash",
+        "uid": "1099",
+        "HGIS_OID": "None",
+        "building": "yes",
+        "type": "None",
+        "id": "way/442978",
+        "area": "None",
+        "QAStatus": "New_Building_Rev1",
+        "HGISOID": 0.0,
+        "TaskArea": "West",
+        "Revision1": "Yes",
+        "Shape_Leng": 0.00026,
+        "Shape_Area": 0.0,
+        "partialBuilding": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.702295499999934,
+              -22.954346399999963,
+              0.0
+            ],
+            [
+              -43.70225,
+              -22.954297699999927,
+              0.0
+            ],
+            [
+              -43.702200199999936,
+              -22.95433719999994,
+              0.0
+            ],
+            [
+              -43.702245699999935,
+              -22.954385899999977,
+              0.0
+            ],
+            [
+              -43.702295499999934,
+              -22.954346399999963,
+              0.0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timestamp": "2016-07-13T18:58:20Z",
+        "version": "1",
+        "changeset": "10527",
+        "user": "knash",
+        "uid": "1099",
+        "HGIS_OID": "None",
+        "building": "yes",
+        "type": "None",
+        "id": "way/442979",
+        "area": "None",
+        "QAStatus": "New_Building_Rev1",
+        "HGISOID": 0.0,
+        "TaskArea": "West",
+        "Revision1": "Yes",
+        "Shape_Leng": 0.000272,
+        "Shape_Area": 0.0,
+        "partialBuilding": 0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.7020452,
+              -22.953930499999956,
+              0.0
+            ],
+            [
+              -43.70199949999994,
+              -22.953881,
+              0.0
+            ],
+            [
+              -43.70194559999993,
+              -22.953923199999963,
+              0.0
+            ],
+            [
+              -43.70199119999995,
+              -22.95397269999995,
+              0.0
+            ],
+            [
+              -43.7020452,
+              -22.953930499999956,
+              0.0
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

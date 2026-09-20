@@ -1,0 +1,71 @@
+{
+  "model_name": "HeightEstimator_Cascade",
+  "model_version": "1.0.0-trained",
+  "model_type": "HEIGHT_REGRESSOR",
+  "architecture": "HeightRegressorMLP (Linear, BatchNorm1d, ReLU, Dropout, Softplus, 5,217 params)",
+  "framework": "PyTorch 2.14.0 -> ONNX Runtime",
+  "onnx_opset": 17,
+  "onnx_sha256": "c54e495957fcfb7acd935fd592ccd783ea9301847730eec66fb8e34106c00a2c",
+  "onnx_file_size_bytes": 22275,
+  "training_date": "2026-09-20T10:22:49.223459+00:00",
+  "dataset": {
+    "name": "3DBAG (AHN4 Airborne LiDAR + Kadaster Cadastre)",
+    "region": "Delft, Netherlands",
+    "total_usable_samples": 1220,
+    "split": {
+      "train_samples": 854,
+      "val_samples": 183,
+      "test_samples": 183,
+      "seed": 42,
+      "strategy": "SPATIAL_DISJOINT_BLOCKS"
+    }
+  },
+  "input_features": [
+    "footprint_area_m2",
+    "footprint_perimeter_m",
+    "compactness",
+    "convexity",
+    "aspect_ratio",
+    "equivalent_diameter_m",
+    "terrain_elevation_m"
+  ],
+  "normalization": {
+    "method": "STANDARD_SCALING",
+    "means": [
+      68.167557,
+      37.050911,
+      0.585866,
+      0.948461,
+      1.205696,
+      8.69955,
+      0.025773
+    ],
+    "stds": [
+      82.280602,
+      19.716911,
+      0.120745,
+      0.065667,
+      0.191749,
+      3.33357,
+      0.181812
+    ]
+  },
+  "test_metrics": {
+    "test_mae_m": 2.323,
+    "test_rmse_m": 3.869,
+    "test_r2": 0.0357,
+    "test_median_ae_m": 0.901,
+    "test_p90_ae_m": 5.334,
+    "test_buildings_count": 183,
+    "test_min_height_m": 2.5,
+    "test_median_height_m": 9.43,
+    "test_max_height_m": 28.23
+  },
+  "target": {
+    "name": "building_height_m",
+    "unit": "meters",
+    "min_allowed_m": 2.0,
+    "max_allowed_m": 120.0
+  },
+  "parity_max_diff": 1.430511474609375e-06
+}

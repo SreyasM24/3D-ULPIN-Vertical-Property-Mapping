@@ -1,0 +1,51 @@
+{
+  "type": "Feature",
+  "properties": {
+    "source_dataset": "Microsoft_Global_ML_Building_Footprints",
+    "city": "Pune",
+    "sample_index": 0,
+    "is_valid": true,
+    "centroid": [
+      73.826976,
+      18.530204
+    ],
+    "bbox": [
+      73.826935,
+      18.53017,
+      73.827016,
+      18.530239
+    ],
+    "vertex_count": 5,
+    "raw_properties": {
+      "height": -1.0,
+      "confidence": -1.0
+    }
+  },
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          73.82701603952903,
+          18.53023442780305
+        ],
+        [
+          73.82693963503054,
+          18.530239077200292
+        ],
+        [
+          73.82693524412846,
+          18.530174208414863
+        ],
+        [
+          73.82701164351612,
+          18.53016955425697
+        ],
+        [
+          73.82701603952903,
+          18.53023442780305
+        ]
+      ]
+    ]
+  }
+}

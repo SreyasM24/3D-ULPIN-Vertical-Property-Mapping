@@ -1,0 +1,79 @@
+{
+  "model_name": "BuildingDetector_LOD1",
+  "model_version": "1.0.0-trained",
+  "model_type": "INSTANCE_SEGMENTATION",
+  "framework": "PyTorch -> ONNX",
+  "architecture": "LightweightUNet (DoubleConv, MaxPool, Upsample, SkipConnections, 488,001 params)",
+  "input_spec": {
+    "name": "input",
+    "shape": [
+      "batch_size",
+      3,
+      256,
+      256
+    ],
+    "dtype": "float32",
+    "color_order": "RGB",
+    "normalization": {
+      "pixel_range": "[0.0, 1.0]",
+      "formula": "pixel_value / 255.0"
+    }
+  },
+  "output_spec": {
+    "name": "output",
+    "shape": [
+      "batch_size",
+      1,
+      256,
+      256
+    ],
+    "dtype": "float32",
+    "content": "Raw logit values. Apply sigmoid(x) to compute building presence probability."
+  },
+  "postprocessing": {
+    "probability_threshold": 0.5,
+    "min_polygon_area_px": 10
+  },
+  "training_dataset": {
+    "name": "SpaceNet 1: Building Detection (AOI 1 Rio de Janeiro)",
+    "source": "s3://spacenet-dataset/AOI_1_Rio/ via Hugging Face mirror",
+    "resolution_gsd_m": 0.5,
+    "license": "CC-BY-SA-4.0",
+    "splits": {
+      "train_tiles": 35,
+      "val_tiles": 7,
+      "test_tiles": 8,
+      "train_buildings": 1828,
+      "val_buildings": 57,
+      "test_buildings": 295
+    },
+    "random_seed": 42
+  },
+  "test_metrics": {
+    "test_iou": 0.5001,
+    "test_dice_f1": 0.6667,
+    "test_precision": 0.6193,
+    "test_recall": 0.722,
+    "test_pixel_accuracy": 0.9318
+  },
+  "pixel_statistics": {
+    "total_pixels": 524288,
+    "true_positives": 35777,
+    "false_positives": 21996,
+    "false_negatives": 13773,
+    "true_negatives": 452742,
+    "total_building_pixels": 49550,
+    "total_background_pixels": 474738,
+    "building_pixel_fraction": 0.0945
+  },
+  "technical_environment": {
+    "pytorch_version": "2.14.0+cpu",
+    "onnx_version": "1.23.0",
+    "onnxruntime_version": "1.30.0",
+    "onnx_opset": 17,
+    "export_date": "2026-09-20T09:50:30.076620+00:00",
+    "model_file_sha256": "6840feac1ff15945540b839401877ba1eee0460e0b4f80b7d501eaa299c85d1f",
+    "model_file_size_bytes": 1959421,
+    "model_file_size_mb": 1.87
+  }
+}

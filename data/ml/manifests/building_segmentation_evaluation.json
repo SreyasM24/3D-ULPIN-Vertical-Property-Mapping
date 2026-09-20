@@ -1,0 +1,114 @@
+{
+  "evaluation_metadata": {
+    "evaluated_at": "2026-09-20",
+    "checkpoint_file": "best_building_unet.pt",
+    "best_training_epoch": 32,
+    "test_tile_count": 8,
+    "probability_threshold": 0.5,
+    "image_resolution": [
+      256,
+      256
+    ],
+    "model_architecture": "LightweightUNet",
+    "device": "cpu"
+  },
+  "aggregate_metrics": {
+    "test_iou": 0.5001,
+    "test_dice_f1": 0.6667,
+    "test_precision": 0.6193,
+    "test_recall": 0.722,
+    "test_pixel_accuracy": 0.9318
+  },
+  "pixel_counts": {
+    "total_pixels": 524288,
+    "true_positives": 35777,
+    "false_positives": 21996,
+    "false_negatives": 13773,
+    "true_negatives": 452742,
+    "total_building_pixels": 49550,
+    "total_background_pixels": 474738,
+    "building_pixel_fraction": 0.0945
+  },
+  "per_tile_breakdown": [
+    {
+      "tile_id": "013022223131_Public_img1314",
+      "building_pixels": 348,
+      "background_pixels": 65188,
+      "iou": 0.0929,
+      "dice": 0.1699,
+      "precision": 0.1206,
+      "recall": 0.2874,
+      "pixel_accuracy": 0.9851
+    },
+    {
+      "tile_id": "013022223131_Public_img1429",
+      "building_pixels": 6864,
+      "background_pixels": 58672,
+      "iou": 0.3891,
+      "dice": 0.5602,
+      "precision": 0.6129,
+      "recall": 0.5159,
+      "pixel_accuracy": 0.9152
+    },
+    {
+      "tile_id": "013022223132_Public_img1776",
+      "building_pixels": 15149,
+      "background_pixels": 50387,
+      "iou": 0.4925,
+      "dice": 0.66,
+      "precision": 0.7161,
+      "recall": 0.6121,
+      "pixel_accuracy": 0.8542
+    },
+    {
+      "tile_id": "013022223132_Public_img2237",
+      "building_pixels": 7089,
+      "background_pixels": 58447,
+      "iou": 0.6314,
+      "dice": 0.774,
+      "precision": 0.6467,
+      "recall": 0.9637,
+      "pixel_accuracy": 0.9391
+    },
+    {
+      "tile_id": "013022223132_Public_img2555",
+      "building_pixels": 256,
+      "background_pixels": 65280,
+      "iou": 0.0,
+      "dice": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "pixel_accuracy": 0.9849
+    },
+    {
+      "tile_id": "013022223131_Public_img1064",
+      "building_pixels": 78,
+      "background_pixels": 65458,
+      "iou": 0.5877,
+      "dice": 0.7403,
+      "precision": 0.6505,
+      "recall": 0.859,
+      "pixel_accuracy": 0.9993
+    },
+    {
+      "tile_id": "013022223131_Public_img1321",
+      "building_pixels": 1655,
+      "background_pixels": 63881,
+      "iou": 0.5833,
+      "dice": 0.7368,
+      "precision": 0.6477,
+      "recall": 0.8544,
+      "pixel_accuracy": 0.9846
+    },
+    {
+      "tile_id": "013022232022_Public_img5968",
+      "building_pixels": 18111,
+      "background_pixels": 47425,
+      "iou": 0.516,
+      "dice": 0.6808,
+      "precision": 0.5906,
+      "recall": 0.8034,
+      "pixel_accuracy": 0.7918
+    }
+  ]
+}

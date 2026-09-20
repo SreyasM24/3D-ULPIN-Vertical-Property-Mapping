@@ -1,0 +1,82 @@
+{
+  "metadata": {
+    "split_strategy": "tile_level_disjoint_spatial_split",
+    "random_seed": 42,
+    "total_tiles": 50,
+    "train_count": 35,
+    "val_count": 7,
+    "test_count": 8,
+    "train_percentage": 70.0,
+    "val_percentage": 14.0,
+    "test_percentage": 16.0,
+    "description": "Disjoint complete tile split preventing spatial data leakage between training and testing sets."
+  },
+  "train": [
+    "013022223133_Public_img3350",
+    "013022223133_Public_img3322",
+    "013022223133_Public_img3202",
+    "013022223132_Public_img1502",
+    "013022223131_Public_img1126",
+    "013022232022_Public_img6593",
+    "013022223133_Public_img3562",
+    "013022223131_Public_img1440",
+    "013022232020_Public_img4354",
+    "013022223132_Public_img2403",
+    "013022232020_Public_img4654",
+    "013022223133_Public_img3261",
+    "013022223132_Public_img1600",
+    "013022223131_Public_img1124",
+    "013022232022_Public_img5895",
+    "013022232022_Public_img5720",
+    "013022223131_Public_img832",
+    "013022223133_Public_img3344",
+    "013022232022_Public_img5237",
+    "013022223130_Public_img353",
+    "013022232022_Public_img6282",
+    "013022223133_Public_img3190",
+    "013022232020_Public_img5039",
+    "013022232200_Public_img7123",
+    "013022232022_Public_img6041",
+    "013022232020_Public_img4627",
+    "013022223133_Public_img3733",
+    "013022223133_Public_img3238",
+    "013022223133_Public_img3285",
+    "013022232022_Public_img6087",
+    "013022232023_Public_img6740",
+    "013022232022_Public_img5404",
+    "013022232020_Public_img4895",
+    "013022232022_Public_img6569",
+    "013022223132_Public_img1745"
+  ],
+  "validation": [
+    "013022232200_Public_img7175",
+    "013022232200_Public_img7007",
+    "013022223131_Public_img1107",
+    "013022223133_Public_img3638",
+    "013022232022_Public_img5415",
+    "013022223131_Public_img1204",
+    "013022232020_Public_img5048"
+  ],
+  "test": [
+    "013022223131_Public_img1314",
+    "013022223131_Public_img1429",
+    "013022223132_Public_img1776",
+    "013022223132_Public_img2237",
+    "013022223132_Public_img2555",
+    "013022223131_Public_img1064",
+    "013022223131_Public_img1321",
+    "013022232022_Public_img5968"
+  ],
+  "train_stats": {
+    "total_buildings": 1828,
+    "mean_buildings_per_tile": 52.2
+  },
+  "validation_stats": {
+    "total_buildings": 57,
+    "mean_buildings_per_tile": 8.1
+  },
+  "test_stats": {
+    "total_buildings": 295,
+    "mean_buildings_per_tile": 36.9
+  }
+}

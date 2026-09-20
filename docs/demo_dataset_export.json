@@ -1,0 +1,141 @@
+{
+  "disclaimer": "SYNTHETIC DEMO DATA - NOT REAL GOVERNMENT DATA",
+  "parcel": {
+    "id": "a9203ab6-88fa-42bc-8430-128e3c115ed0",
+    "ulpin_2d": "B34C81ADC86A6J",
+    "state_code": "MH",
+    "district_code": "PUN",
+    "survey_number": "DEMO-26011-001",
+    "area_sqm": 11682.23,
+    "centroid": [
+      73.8565,
+      18.5205
+    ]
+  },
+  "building": {
+    "id": "aa2f1c16-d4f7-4beb-99b5-60278b3e7d5f",
+    "building_code": "BLD-DEMO-01",
+    "building_name": "Pragati Heights (Demo Benchmark)",
+    "height_m": 18.0,
+    "ground_elevation_m": 560.0,
+    "floors_count": 5,
+    "units_count": 8
+  },
+  "floors": [
+    {
+      "code": "B1",
+      "z_min": 556.5,
+      "z_max": 560.0,
+      "level_number": -1
+    },
+    {
+      "code": "G",
+      "z_min": 560.0,
+      "z_max": 563.5,
+      "level_number": 0
+    },
+    {
+      "code": "F1",
+      "z_min": 563.5,
+      "z_max": 567.0,
+      "level_number": 1
+    },
+    {
+      "code": "F2",
+      "z_min": 567.0,
+      "z_max": 570.5,
+      "level_number": 2
+    },
+    {
+      "code": "F3",
+      "z_min": 570.5,
+      "z_max": 574.0,
+      "level_number": 3
+    }
+  ],
+  "units": [
+    {
+      "unit_number": "B1-01",
+      "ulpin_3d": "B34C81ADC86A6J-B1-UB101-9D",
+      "unit_type": "PARKING",
+      "z_min": 556.5,
+      "z_max": 560.0,
+      "volume_cu_m": 14719.6,
+      "is_multi_floor": false
+    },
+    {
+      "unit_number": "G-01",
+      "ulpin_3d": "B34C81ADC86A6J-G-UG01-CG",
+      "unit_type": "COMMERCIAL",
+      "z_min": 560.0,
+      "z_max": 563.5,
+      "volume_cu_m": 7359.8,
+      "is_multi_floor": false
+    },
+    {
+      "unit_number": "G-02",
+      "ulpin_3d": "B34C81ADC86A6J-G-UG02-AJ",
+      "unit_type": "COMMERCIAL",
+      "z_min": 560.0,
+      "z_max": 563.5,
+      "volume_cu_m": 7359.8,
+      "is_multi_floor": false
+    },
+    {
+      "unit_number": "F1-101",
+      "ulpin_3d": "B34C81ADC86A6J-F1-UF1101-G1",
+      "unit_type": "APARTMENT",
+      "z_min": 563.5,
+      "z_max": 567.0,
+      "volume_cu_m": 7359.8,
+      "is_multi_floor": false
+    },
+    {
+      "unit_number": "F1-COMM",
+      "ulpin_3d": "B34C81ADC86A6J-F1-UF1COMM-FJ",
+      "unit_type": "COMMON_AREA",
+      "z_min": 563.5,
+      "z_max": 567.0,
+      "volume_cu_m": 7359.8,
+      "is_multi_floor": false
+    },
+    {
+      "unit_number": "F2-202",
+      "ulpin_3d": "B34C81ADC86A6J-F2-UF2202-9A",
+      "unit_type": "APARTMENT",
+      "z_min": 567.0,
+      "z_max": 570.5,
+      "volume_cu_m": 7359.8,
+      "is_multi_floor": false
+    },
+    {
+      "unit_number": "DUPLEX-01",
+      "ulpin_3d": "B34C81ADC86A6J-F2-UDUPLEX01-6R",
+      "unit_type": "APARTMENT",
+      "z_min": 567.0,
+      "z_max": 574.0,
+      "volume_cu_m": 14719.6,
+      "is_multi_floor": true
+    },
+    {
+      "unit_number": "F3-302",
+      "ulpin_3d": "B34C81ADC86A6J-F3-UF3302-4G",
+      "unit_type": "TERRACE",
+      "z_min": 570.5,
+      "z_max": 574.0,
+      "volume_cu_m": 7359.8,
+      "is_multi_floor": false
+    }
+  ],
+  "validation": {
+    "run_id": "f1917cf2-a25f-4297-a1eb-243a45645978",
+    "is_valid": true,
+    "quality_score": 92.0,
+    "quality_grade": "HIGH_CONFIDENCE"
+  },
+  "digital_twin_summary": {
+    "total_units": 8,
+    "total_volume_cu_m": 73598.0,
+    "total_carpet_area_sqm": 18925.2
+  }
+}

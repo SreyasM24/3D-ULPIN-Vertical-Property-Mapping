@@ -1,0 +1,6 @@
+{
+  "name": "3D ULPIN & Vertical Property Mapping System",
+  "description": "Transforming parcel, building and vertical property data into a validated 3D cadastral digital twin for SIH 26011.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

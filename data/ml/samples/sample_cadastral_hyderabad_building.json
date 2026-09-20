@@ -1,0 +1,51 @@
+{
+  "type": "Feature",
+  "properties": {
+    "source_dataset": "Microsoft_Global_ML_Building_Footprints",
+    "city": "Hyderabad",
+    "sample_index": 0,
+    "is_valid": true,
+    "centroid": [
+      78.49465,
+      17.394237
+    ],
+    "bbox": [
+      78.49451,
+      17.394106,
+      78.49479,
+      17.394368
+    ],
+    "vertex_count": 5,
+    "raw_properties": {
+      "height": -1.0,
+      "confidence": -1.0
+    }
+  },
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          78.49450977185653,
+          17.394218816422054
+        ],
+        [
+          78.49468277798987,
+          17.394106411520184
+        ],
+        [
+          78.49478955902025,
+          17.3942560742192
+        ],
+        [
+          78.4946165397537,
+          17.394368476006264
+        ],
+        [
+          78.49450977185653,
+          17.394218816422054
+        ]
+      ]
+    ]
+  }
+}

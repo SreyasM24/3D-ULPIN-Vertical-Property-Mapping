@@ -1,0 +1,88 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*.pyo
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Node & Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+
+# Environment & Secrets (Never commit actual credentials)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*service-account*.json
+
+# Databases & local runtime storage
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Operating System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files & Scratch
+*.tmp
+*.temp
+*.bak
+*.mp4
+scratch/
+
+# Model/training temporary artifacts & checkpoints (keep ONNX models in models/)
+checkpoints/
+models/checkpoints/
+*.pt
+*.pth
+runs/
+wandb/
+mlruns/
+
+# Large Raw & Processed Datasets (documented in data/ml/README.md)
+data/ml/raw/
+data/ml/processed/
+data/ml/samples/building_segmentation_predictions/

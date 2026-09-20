@@ -1,0 +1,21 @@
+{
+  "source_file": "USGS_1M_16_x38y376_AL_11County_B23.tif",
+  "patch_dimensions": [
+    512,
+    512
+  ],
+  "crop_box_pixels": [
+    7228,
+    5219,
+    7740,
+    5731
+  ],
+  "resolution_m": 1.0,
+  "min_elevation_m": 100.0807876586914,
+  "max_elevation_m": 143.16867065429688,
+  "mean_elevation_m": 118.44590759277344,
+  "std_elevation_m": 8.980151176452637,
+  "elevation_range_m": 43.08788299560547,
+  "unit": "meters AMSL",
+  "license": "Public Domain (USGS 3DEP)"
+}
