@@ -149,7 +149,7 @@ class BuildingDetector(BaseFeatureModel):
         inputs = merged_inputs
 
         source_footprint = inputs.get("footprint_geojson")
-        source_type = inputs.get("source_type", EvidenceSourceType.BUILDING_METADATA)
+        source_type = inputs.get("source_type") or EvidenceSourceType.BUILDING_METADATA
 
         # -------------------------------------------------------------------
         # Branch 1: Deterministic Observed Footprint Pass-Through

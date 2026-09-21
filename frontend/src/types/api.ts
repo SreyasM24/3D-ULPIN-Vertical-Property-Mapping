@@ -676,6 +676,39 @@ export interface ProvenanceRecord {
   requires_review?: boolean;
   vertical_classification?: string;
   floor_span?: string[];
+  coverage?: string;
+  uncertainty_basis?: string;
+  point_count?: number;
+  building_point_count?: number;
+  ground_point_count?: number;
+  point_density_pts_m2?: number;
+  surface_elevation_m?: number;
+  ground_elevation_m?: number;
+  observed_height_m?: number;
+  horizontal_crs?: string;
+  ai_model?: string;
+  ground_method?: string;
+  surface_statistic?: string;
+  raster_resolution?: number;
+  raster_dimensions?: string;
+  nodata_value?: number;
+  multi_source_evidence?: Array<{
+    source_type: string;
+    source_reference?: string;
+    evidence_class?: string;
+    height_m?: number | null;
+    uncertainty_m?: number | null;
+    coverage?: string;
+    method?: string;
+    [key: string]: any;
+  }>;
+  selected_evidence?: string;
+  why_selected?: string;
+  ai_status?: string;
+  conflict_detected?: boolean;
+  conflict_severity?: string;
+  conflict_details?: Record<string, any>;
+  fusion_outcome?: Record<string, any>;
   [key: string]: any;
 }
 

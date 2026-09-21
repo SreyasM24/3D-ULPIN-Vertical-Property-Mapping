@@ -98,20 +98,91 @@ class AnomalyCheckRequest(BaseModel):
 
 @router.get("/health", response_model=APIResponse[Dict[str, Any]])
 def get_ml_subsystem_health():
-    """Returns runtime readiness and health probes for all ML model adapters."""
+    """Returns runtime readiness and health probes for all ML model adapters and sensor pipelines."""
+    import os
+    # 1. Model Probes
     models = [
         BuildingDetector(),
         HeightEstimatorModel(),
         FloorEstimatorModel(),
         CadastralMLAnomalyDetector(),
     ]
-    probes = [m.health() for m in models]
-    all_ready = all(p["status"] in ("ACTIVE", "DEGRADED") for p in probes)
+    model_probes = [m.health() for m in models]
+    
+    # 2. Runtime Probe for Point Cloud Inspection
+    las_probe = {"status": "UNAVAILABLE", "details": "No sample LAS artifact found."}
+    las_sample_path = "data/ml/raw/lidar/sample_pointcloud.las"
+    if os.path.exists(las_sample_path):
+        las_insp = PointCloudPreprocessor.inspect_pointcloud(las_sample_path)
+        if las_insp.get("status") == "HEADER_READ":
+            las_probe = {
+                "status": "OPERATIONAL",
+                "backend": "LASPY",
+                "point_count": las_insp.get("point_count"),
+                "crs": las_insp.get("horizontal_crs"),
+                "sample_artifact": os.path.basename(las_sample_path)
+            }
+        else:
+            las_probe = {"status": "DEGRADED", "error": las_insp.get("error")}
+
+    # 3. Runtime Probe for Raster Inspection
+    raster_probe = {"status": "UNAVAILABLE", "details": "No DEM/DSM raster artifact found."}
+    raster_sample_path = "data/ml/processed/elevation_profiles/usgs_3dep_dem_patch_512x512.npy"
+    if os.path.exists(raster_sample_path):
+        dem_insp = RasterPreprocessor.inspect_raster(raster_sample_path)
+        if dem_insp.get("status") == "NUMPY_ARRAY_READ":
+            raster_probe = {
+                "status": "OPERATIONAL",
+                "backend": "NUMPY_RASTER_PARSER",
+                "model_type": dem_insp.get("model_type"),
+                "dimensions": f"{dem_insp.get('width')}x{dem_insp.get('height')}",
+                "spatial_resolution_m": dem_insp.get("spatial_resolution_m"),
+                "crs": dem_insp.get("horizontal_crs"),
+                "sample_artifact": os.path.basename(raster_sample_path)
+            }
+        else:
+            raster_probe = {"status": "DEGRADED", "error": dem_insp.get("error")}
+
+    # 4. Runtime Probe for Observed LiDAR Height Extraction
+    lidar_height_probe = {"status": "UNAVAILABLE"}
+    if las_probe.get("status") == "OPERATIONAL":
+        test_bld = {
+            "type": "Polygon",
+            "coordinates": [[
+                [76.2404, 7.6952],
+                [76.2440, 7.6952],
+                [76.2440, 7.6988],
+                [76.2404, 7.6988],
+                [76.2404, 7.6952]
+            ]]
+        }
+        clip_probe = PointCloudPreprocessor.clip_pointcloud_to_footprint(
+            las_sample_path, test_bld, source_crs="EPSG:32643", target_crs="EPSG:4326"
+        )
+        if clip_probe.get("status") == "VALID_OBSERVED_EVIDENCE":
+            lidar_height_probe = {
+                "status": "OPERATIONAL",
+                "method": clip_probe.get("method"),
+                "verified_observed_height_m": clip_probe.get("height_m"),
+                "uncertainty_m": clip_probe.get("uncertainty_m"),
+                "coverage_check": "VERIFIED_SPATIAL_INTERSECTION"
+            }
+        else:
+            lidar_height_probe = {"status": "DEGRADED", "details": clip_probe.get("explanation")}
+
+    all_models_ready = all(p["status"] in ("ACTIVE", "DEGRADED") for p in model_probes)
+    all_ready = all_models_ready and las_probe.get("status") == "OPERATIONAL" and raster_probe.get("status") == "OPERATIONAL"
+
     return APIResponse(
         data={
             "subsystem": "ML_FEATURE_EXTRACTION",
             "status": "OPERATIONAL" if all_ready else "DEGRADED",
-            "models": probes
+            "models": model_probes,
+            "sensors": {
+                "point_cloud_inspection": las_probe,
+                "raster_inspection": raster_probe,
+                "observed_lidar_height": lidar_height_probe
+            }
         }
     )
 

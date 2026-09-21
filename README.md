@@ -8,7 +8,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![ONNX Runtime](https://img.shields.io/badge/ONNX%20Runtime-1.20+-005CED.svg?logo=onnx&logoColor=white)](https://onnxruntime.ai/)
 [![Three.js](https://img.shields.io/badge/Three.js-r128+-black.svg?logo=three.js&logoColor=white)](https://threejs.org/)
-[![Tests](https://img.shields.io/badge/Tests-139%20Passed-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-187%20Passed-brightgreen.svg)](tests/)
 
 ---
 
@@ -41,20 +41,20 @@ To design and build an integrated system that:
 
 ## 3. What the System Does
 
-The platform processes land parcels through a rigorous pipeline:
+The platform processes land parcels through a rigorous, auditable pipeline:
 
 ```
-[Land Parcel Boundary]
+[Land Parcel Boundary & Multi-Source Evidence] (LiDAR LAS, Drone RGB, DEM/DTM, CAD DXF, Survey Deed)
         ↓
-[Geospatial Evidence Ingestion] (RGB Imagery, Elevation Rasters, Survey Docs)
+[CRS & Spatial Coverage Gating] (EPSG Verification, Spatial Intersection, Datum Validation)
         ↓
-[AI Evidence Extraction] (Building Footprint U-Net, Height Regressor MLP)
+[AI Evidence Extraction & Calibration] (U-Net Footprint ONNX, Height Regressor ONNX, Derived Uncertainty ±m)
         ↓
-[Auditable Provenance Tagging] (Sensor Lineage, Uncertainty ±m, Confidence)
+[Multi-Source Evidence Fusion & Conflict Engine] (Statistical 2σ Tolerance Check, Discrepancy Adjudication)
         ↓
-[Deterministic Cadastral Construction] (Building, FloorLevel Strata, VerticalUnit Prisms)
+[Deterministic Cadastral Construction] (Building Shell, FloorLevel Strata, VerticalUnit Prisms)
         ↓
-[102-Rule Validation Suite] (Geometry, Hierarchy, Strata Overlap, 3D Clash Freedom)
+[102-Rule Validation Suite] (Geometry, Containment Hierarchy, Slab Continuity, 3D Clash Freedom)
         ↓
 [Prototype 3D ULPIN Generation] (Geodetic SHA-256 + Strata Code + Luhn Mod-36 Dual Checksum)
         ↓
@@ -65,11 +65,14 @@ The platform processes land parcels through a rigorous pipeline:
 
 ---
 
-## 4. Core Architecture
+## 4. Core Architecture & Governance Principles
 
 The system strictly enforces the boundary between **probabilistic AI evidence** and **authoritative cadastral truth**:
-- **AI models propose candidate evidence and parameters.**
-- **Deterministic spatial engines construct legal structures, enforce containment, and generate identifiers.**
+
+- **AI proposes, extracts, and estimates evidence**: Neural network models extract candidate footprints and advise on building heights with empirical uncertainty bounds ($\pm m$). AI is an evidence source, never unvetted legal fact.
+- **Deterministic cadastral logic constructs cadastral geometry**: Cadastral building envelopes, vertical strata slices, and 3D property unit prisms are constructed purely through deterministic geometric algorithms and parametric municipal rules.
+- **Deterministic validation checks geometry, topology, and data quality**: 102 rigid algorithmic validation rules enforce boundary validity, spatial hierarchy, vertical continuity, and 3D clash freedom.
+- **Evidence conflicts require review and are never silently resolved**: Discrepancies between evidence sources exceeding statistical 2-sigma thresholds ($\Delta_{\text{tol}} = \max(2.5\text{m}, 2.0 \times \sqrt{u_1^2 + u_2^2})$) trigger mandatory `review_required = true` flags, preserving both measurements rather than silently averaging them.
 - **Authoritative land records cannot be altered by raw AI inference alone.**
 
 ```mermaid
@@ -154,25 +157,63 @@ The system incorporates two lightweight, trained neural models deployed via **ON
   - Coefficient of Determination ($R^2$): **0.0357**
 - **Inference Latency**: **38.38 ms** median (48.86 ms P95)
 - **Deployment Artifact**: `models/height_estimator.onnx` (`models/height_estimator_metadata.json`)
-- **Domain & Advisory Notice**: Height regression serves strictly as an advisory estimate when explicit LiDAR or DSM-DTM elevation models are absent. The modest $R^2$ reflects the high diversity of building morphologies from footprint shapes alone; outputs carry an explicit uncertainty bound ($\pm 2.32\text{m}$) and require human surveyor confirmation.
+### 5.3 Real LiDAR & Elevation Raster Preprocessing
+- **LiDAR / LAS Point Cloud Engine** (`PointCloudPreprocessor`):
+  - Ingests real ASPRS LAS/LAZ formats with georeferenced CRS headers (e.g., EPSG:32643 / UTM Zone 43N).
+  - Isolates ASPRS Class 2 ground returns for bare-earth datum establishment ($Z_{\text{ground}}$).
+  - Computes building surface elevation using robust 95th percentile ($Z_{95}$) to eliminate rooftop antennae, tree canopy, or sensor noise.
+  - Computes empirical vertical uncertainty from point density: $u = \text{round}(0.30 + \frac{5.0}{\sqrt{\rho}}, 2)\text{ m}$.
+  - **Strict Spatial Coverage Gating**: If LiDAR spatial bounds do not intersect the parcel footprint, evidence is categorized as `REJECTED_OUT_OF_BOUNDS` with zero height fabrication.
+- **Raster Preprocessing Engine** (`RasterPreprocessor`):
+  - Ingests GeoTIFF digital elevation models (USGS 3DEP, SRTM).
+  - Classifies rasters into bare-earth DEM/DTM vs surface DSM. Bare-earth DEMs provide terrain elevations only and are never falsely converted into building heights without a surface model.
 
 ---
 
-## 6. Provenance Model
+## 6. Multi-Source Evidence Fusion & Provenance Model
+
+The **Multi-Source Evidence Fusion Engine** (`MultiSourceEvidenceFusionEngine`) ingests candidate measurements across 9 supported source sensor types, verifies coverage, audits discrepancies, and determines authoritative height:
+
+### 6.1 Supported Source Sensor Options
+
+| # | User-Facing Sensor Source | Field Label | Default Reference / Format | Evidence Class | Role & Priority |
+|---|---|---|---|---|---|
+| **1** | `DRONE_PHOTOGRAMMETRY` | Aerial Survey / Photogrammetry Dataset | `demo_26011_drone_survey.geojson` | `OBSERVED` | High-fidelity photogrammetric telemetry |
+| **2** | `POINT_CLOUD` | Raw Point Cloud Telemetry (.las / .laz) | `sample_pointcloud.las` | `OBSERVED` | Real LiDAR returns (Bypasses AI) |
+| **3** | `DSM_DTM` | Elevation Surface / Bare Earth Raster (.tif) | `usgs_3dep_dem_patch_512x512.tif` | `OBSERVED` | Bare-earth terrain elevation |
+| **4** | `CAD_FLOOR_PLAN` | Architectural CAD Floor Plan (.dxf / .dwg) | `architectural_floor_plan_rev2.dxf` | `OBSERVED` | High-accuracy structural drawings |
+| **5** | `BUILDING_METADATA` | Cadastral Deed / Registry Survey ID | `registered_cadastral_survey` | `OBSERVED` | Statutory building record declaration |
+| **6** | `EXPLICIT_FLOOR_COUNT` | Storey Declaration / Cadastral Record | `surveyor_storey_declaration.record` | `DETERMINISTIC` | Official surveyor storey count declaration |
+| **7** | `OBSERVED_HEIGHT_DECOMPOSITION` | Observed Total Station / Strata Telemetry | `total_station_height_telemetry.obs` | `OBSERVED` | Total station field observation |
+| **8** | `AI_HEIGHT_DECOMPOSITION` | ONNX Neural Network Model Checkpoint | `models/height_estimator.onnx` | `AI_ESTIMATED` | Advisory neural network inference |
+| **9** | `DETERMINISTIC_BASELINE` | Parametric Building Code / NBC Rule Set | `cadastral_parametric_rules` | `DETERMINISTIC` | Statutory municipal building code baseline |
+
+### 6.2 Evidence Conflict Detection & Adjudication
+- **Statistical 2-Sigma Combined Uncertainty**:
+  $$\Delta_{\text{tol}} = \max\left(2.5\text{m},\; 2.0 \times \sqrt{u_1^2 + u_2^2}\right)$$
+- When two valid evidence sources (e.g., 30.0m declared survey vs 18.21m observed LiDAR) disagree by more than $\Delta_{\text{tol}}$:
+  - An `EvidenceConflictRecord` is logged with severity (`HIGH`, `MEDIUM`, `LOW`).
+  - Mandatory `review_required = true` flag is raised.
+  - Both raw values are preserved in the Digital Twin metadata; **measurements are never silently averaged or smoothed**.
+- **AI Bypass Protocol**: Valid observed LiDAR point cloud or architectural evidence outranks AI inference, setting `ai_status = "BYPASSED_OBSERVED_EVIDENCE"` and `ai_model = "NOT_USED_OBSERVED_EVIDENCE"`.
+
+### 6.3 Standardized Provenance Lineage Tags
 
 Every property entity, geometry, and attribute records its full lineage via standardized provenance tags:
 
 | Provenance Tag | Stage | Description |
 |---|---|---|
-| `AI_ONNX_INFERENCE` | Extraction | Generated by U-Net ONNX model from satellite/aerial imagery |
-| `PASS_THROUGH_OBSERVED` | Extraction | Ingested directly from registered cadastral boundary polygons |
-| `OBSERVED_ELEVATION_EVIDENCE` | Elevation | Derived from DSM-DTM raster difference or airborne LiDAR point clouds |
-| `OBSERVED_SURVEY_METADATA` | Elevation | Ingested from architectural drawings or municipal records |
-| `AI_REGRESSION` | Elevation | Inferred by `HeightRegressorMLP` neural network |
-| `DETERMINISTIC_CASCADE` | Elevation | Estimated parametrically from floor counts ($3.8\text{m} + (N-1) \times 3.0\text{m}$) |
-| `EXPLICIT_FLOOR_COUNT` | Strata | Directly parsed from verified surveyor records |
-| `OBSERVED_HEIGHT_DECOMPOSITION` | Strata | Parametrically decomposed from LiDAR or DSM-DTM elevation |
+| `AI_ONNX_INFERENCE` | Footprint | Extracted by U-Net ONNX model from satellite/aerial imagery |
+| `PASS_THROUGH_OBSERVED` | Footprint | Ingested directly from registered cadastral boundary polygons |
+| `POINT_CLOUD` | Height | Derived from verified ASPRS Class 2 LiDAR returns |
+| `DEM_DTM` / `DSM_DTM` | Elevation | Ingested from bare-earth DEM or surface DSM raster |
+| `EXPLICIT_SURVEY_METADATA` | Height | Ingested from registered deed or surveyor survey records |
+| `CAD_FLOOR_PLAN` | Height | Ingested from architectural CAD drawings |
+| `AI_REGRESSION` | Height | Inferred by `HeightRegressorMLP` neural network (Advisory) |
+| `EXPLICIT_FLOOR_COUNT` | Strata | Directly parsed from verified surveyor storey declaration |
+| `OBSERVED_HEIGHT_DECOMPOSITION` | Strata | Parametrically decomposed from LiDAR or total station telemetry |
 | `AI_HEIGHT_DECOMPOSITION` | Strata | Decomposed from AI height regression (**flags surveyor review**) |
+| `DETERMINISTIC_CASCADE` | Strata | Multiplied parametrically from floor count ($3.8\text{m} + (N-1) \times 3.0\text{m}$) |
 | `DETERMINISTIC_BASELINE` | Strata | Standard single-storey default assumption (**flags surveyor review**) |
 | `UNRESOLVED` | Any | Insufficient evidence to determine attribute |
 | `TEST_FIXTURE_CHANGE` | Temporal | Controlled resurvey test fixture simulation |
@@ -267,10 +308,21 @@ Measured on local test hardware across 10 iterations per operation:
 
 ## 13. Testing & Verification
 
-- **Backend Automated Tests**: **139 passed, 0 failed** in 9.33s (`pytest -v`).
-- **Frontend TypeScript Check**: **0 errors** (`npx tsc --noEmit`).
-- **Frontend Production Build**: **Passed in 475ms** (`npm run build`).
-- **Failure Mode Resiliency**: 8 negative scenarios tested in isolation (missing weights, corrupt ONNX, invalid geometry, missing elevation evidence). All degrade gracefully with zero unhandled crashes.
+The prototype undergoes comprehensive automated verification across backend, ML, geospatial, and frontend components:
+
+- **Backend Automated Tests**: **187 passed, 0 failed** in ~20s (`pytest -q`).
+- **Adversarial Geospatial Suite**: **26 passed, 0 failed** (`pytest tests/test_adversarial_geospatial.py`). Tests boundary edge cases, multi-polygons, extreme coordinates, and degenerate geometries.
+- **Frontend TypeScript Verification**: **0 errors** (`npx tsc --noEmit`).
+- **Frontend Production Build**: **Clean build in 770ms** (`npm run build`).
+- **Cadastral Flow Tests**: **12/12 passed** (`npx tsx src/lib/cadastralFlow.test.ts`). Validates complete lifecycle, UI transitions, and zero frontend mock fabrication.
+- **Sensor Code Resolution**: **43/43 passed** (`npx tsx src/lib/sensorCodes.test.ts`). Audits mapping, fallbacks, and label resolution for all 11 internal sensor codes.
+- **9-Source End-to-End Matrix**: **9/9 passed** (`python scripts/test_9_sensor_sources.py`). Tests every user-facing sensor source through live ingestion to digital twin provenance.
+- **Phase 5 All-Scenario Suite**: **5/5 passed with zero fabrication** (`python scripts/verify_phase_5_all.py`):
+  - *Scenario A*: Palakkad LiDAR (`DEMO-LIDAR-43N` → 18.21m, ±1.57m, AI bypassed)
+  - *Scenario B*: Pune Out-of-Coverage (`DEMO-26011-001` → `REJECTED_OUT_OF_BOUNDS`, clean fallback, zero AI bleed)
+  - *Scenario C*: AI Fallback (No physical sensors → ONNX height regression advisory estimate)
+  - *Scenario D*: Evidence Conflict (30.0m survey vs 18.21m LiDAR → `HIGH` severity conflict logged, review required)
+  - *Scenario E*: Dynamic Scaling (3 units / 3 floors → 24 units / 8 floors with distinct 3D ULPINs)
 
 ---
 
@@ -288,23 +340,31 @@ Measured on local test hardware across 10 iterations per operation:
 │   ├── api/v1/endpoints/     # REST controllers (parcels, jobs, units, ml, digital-twin)
 │   ├── core/                 # Config, logging, exceptions, CRS projections
 │   ├── db/                   # SQLAlchemy session management and base models
+│   ├── jobs/                 # Multi-stage asynchronous job orchestrator and worker
 │   ├── ml/                   # ML inference pipeline, ONNX wrappers, schemas
-│   │   ├── models/           # BuildingDetector, HeightEstimator, AnomalyDetector
-│   │   └── pipelines/        # Feature extraction and vertical cadastre orchestrators
-│   ├── models/               # Database ORM entities (Parcel, Building, Unit, etc.)
+│   │   ├── features/         # Geometric feature extraction
+│   │   ├── fusion/           # MultiSourceEvidenceFusionEngine & conflict detection
+│   │   ├── models/           # BuildingDetector, HeightEstimator
+│   │   ├── pipelines/        # FeatureExtractionPipeline orchestrator
+│   │   └── preprocessing/    # PointCloudPreprocessor (LAS) & RasterPreprocessor (DEM)
+│   ├── models/               # Database ORM entities (Parcel, Building, Unit, Floor)
 │   ├── schemas/              # Pydantic v2 validation models
-│   ├── services/             # CadastreService, SpatialEngine, ULPINEngine
+│   ├── services/             # CadastreService, SpatialEngine, DigitalTwinService
 │   ├── temporal/             # Temporal change comparator and scoring
 │   └── validation/           # 102 cadastral rules and quality scorer
 ├── data/                     # Geospatial Data Foundation
 │   └── ml/                   # Dataset documentation, manifests, and test fixtures
-│       ├── manifests/        # JSON/CSV dataset split manifests
-│       └── samples/          # Lightweight test fixtures (sample_image.png, sample_footprint.geojson)
-├── docs/                     # Technical documentation & API references
+├── docs/                     # Technical documentation & governance guides
+│   ├── AI_MODEL_CARD.md      # Detailed architectures, training domains, metrics
+│   ├── ARCHITECTURE.md       # Comprehensive system architecture & data flows
+│   ├── DATASETS_AND_LICENSES.md # Geospatial data provenance & licensing
+│   ├── DEMO_RUNBOOK.md       # Judge & evaluator execution guide
+│   ├── EVIDENCE_AND_PROVENANCE.md # Multi-source fusion & sensor priority
+│   └── LIMITATIONS.md        # Explicit scientific & legal boundaries
 ├── frontend/                 # React 19 + TypeScript + Three.js Application
 │   ├── src/
-│   │   ├── components/       # UI components (DigitalTwin, TemporalChange, Validation)
-│   │   ├── lib/api/          # API client modules
+│   │   ├── components/       # DigitalTwin, TemporalChange, Validation, Processing
+│   │   ├── lib/              # API clients, sensorCodes, cadastral flow tests
 │   │   ├── types/            # TypeScript interfaces mirroring backend schemas
 │   │   ├── App.tsx           # Main application view
 │   │   └── main.tsx          # Application entry point
@@ -315,8 +375,11 @@ Measured on local test hardware across 10 iterations per operation:
 │   ├── building_detector_metadata.json  # Checksums, parameters, metrics
 │   ├── height_estimator.onnx            # Trained MLP height regressor (21.75 KB)
 │   └── height_estimator_metadata.json   # Checksums, parameters, metrics
-├── scripts/                  # Reproducible training and evaluation scripts
-└── tests/                    # 139 Pytest automated unit, integration, and API tests
+├── scripts/                  # Verification suites & demonstration scripts
+│   ├── test_9_sensor_sources.py         # 9-source end-to-end test matrix
+│   ├── verify_phase_5_all.py            # Phase 5 scenarios A–E verification
+│   └── sih_final_demonstration.py       # Live judge evaluation walkthrough
+└── tests/                    # 187 Pytest automated unit, integration, and API tests
 ```
 
 ---
@@ -403,6 +466,7 @@ CORS_ORIGINS=["http://localhost:3000","http://localhost:5173","http://127.0.0.1:
 |---|---|---|
 | `GET` | `/api/v1/health` | System health and database connectivity probe |
 | `GET` | `/api/v1/ml/health` | ML subsystem health, ONNX session status |
+| `GET` | `/api/v1/ml/capabilities` | Active ML models, architectures, parameter counts, and status |
 | `GET` | `/api/v1/ml/models` | List active models, architectures, checksums, and metrics |
 | `POST` | `/api/v1/ml/building/extract` | Extract building footprint from imagery tile (U-Net ONNX) |
 | `POST` | `/api/v1/ml/building/height` | Infer building height from footprint and terrain (MLP ONNX) |
@@ -439,12 +503,30 @@ The project utilizes verified, open geospatial datasets documented in [`data/ml/
 
 ---
 
-## 20. Technical Limitations & Open Research
+## 20. Technical Limitations & Non-Fabrication Governance
 
-- **Prototype 3D ULPIN**: The implemented identifier is an engineering prototype designed for SIH 26011. National deployment requires standardization and gazetting by the Department of Land Resources (DoLR).
-- **Height Estimation Domain Shift**: The MLP height model was trained on representative urban morphological distributions. In geographic regions with irregular roof forms, dense tree canopy, or non-standard floor-to-ceiling heights, human surveyor verification remains mandatory.
-- **AI as Evidence Proposer**: The neural network outputs proposals, not cadastral facts. Final legal property boundaries require surveyor validation and adjudication under state land revenue codes.
-- **Synthetic Test Resurveys**: Temporal change scenarios in the demonstration environment use controlled survey fixtures to simulate multi-epoch data.
+To maintain scientific integrity and legal accuracy, the system explicitly establishes its technical boundaries and governance model:
+
+### 20.1 Core Governance Tenets
+- **AI Proposes Evidence**: Machine learning models extract candidate building footprints and estimate heights with empirical uncertainty bounds ($\pm m$). AI output is strictly evidentiary input.
+- **Deterministic Cadastral Construction**: Building polyhedra, floor strata, and vertical property unit prisms are constructed purely through deterministic geometric algorithms and statutory municipal parameters.
+- **Deterministic Validation**: A suite of 102 rigid algorithmic rules enforces boundary validity, hierarchy containment, vertical continuity, and 3D spatial clash freedom.
+- **Auditable Conflict Resolution**: Evidence conflicts between disparate data sources exceeding 2σ tolerance ($\Delta_{\text{tol}} = \max(2.5\text{m}, 2.0 \times \sqrt{u_1^2 + u_2^2})$) trigger mandatory `review_required = true` flags and are **never silently averaged or overwritten**.
+
+### 20.2 Explicit Non-Claims
+- **No Official Standard Claim**: The 3D ULPIN implemented herein is a competition engineering prototype. It is not an official gazetted standard of the Government of India or the Department of Land Resources (DoLR).
+- **No Legal Title Guarantee**: The system produces technical data quality scores (0–100, Grades A–D) and cadastral geometry models. It does not grant, verify, or transfer legal property titles.
+- **No Government Certification**: The prototype is an academic and engineering hackathon submission; it does not carry regulatory certification.
+- **No Autonomous Adjudication**: The platform flags discrepancies and dispatches review notices for qualified human revenue surveyors. It does not autonomously adjudicate land disputes.
+- **No Nationwide LiDAR Coverage**: Airborne LiDAR point cloud processing is supported where spatial coverage exists. The system does not claim nationwide LiDAR availability.
+- **No Black-Box ML Floor Estimation**: Floor decomposition is deterministic and evidence-driven ($3.8\text{m}$ ground, $3.0\text{m}$ typical), not an opaque neural prediction.
+- **AI is Not Authoritative Truth**: Neural network predictions serve strictly as advisory evidence when physical survey measurements are absent.
+
+### 20.3 Specific Model & Dataset Limitations
+- **Building Detector Domain**: The U-Net segmentation model was trained on SpaceNet 1 (Rio de Janeiro). Complex rural structures, dense organic settlements, or non-rectilinear indigenous architecture may exhibit lower intersection IoU.
+- **Height Regressor Domain**: The MLP height regressor was trained on the 3DBAG Netherlands open building dataset. Its output carries an advisory uncertainty of $\pm 2.32\text{m}$ and reflects typical European urban morphology.
+- **Spatial Gating**: LiDAR point clouds are strictly spatially gated. If target coordinates fall outside the LiDAR bounding box (e.g. Pune parcel evaluated against Palakkad point cloud), the evidence is categorized as `REJECTED_OUT_OF_BOUNDS`, preventing spurious height derivation.
+- **DEM vs DSM Distinction**: Bare-earth digital elevation models (DEM/DTM) represent terrain elevation only ($Z_{\text{ground}}$) and are never falsely converted into building height without a true surface model (DSM).
 
 ---
 

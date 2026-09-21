@@ -255,7 +255,8 @@ def evaluate_building_containment(
     diff = bld_proj.difference(pcl_proj)
     excess_area = round(float(diff.area), 2) if not diff.is_empty else 0.0
 
-    if excess_area <= tolerance_sqm:
+    effective_tolerance = max(tolerance_sqm, round(0.0005 * bld_area, 2))
+    if excess_area <= effective_tolerance:
         return {
             "status": "CONTAINED",
             "is_contained": True,

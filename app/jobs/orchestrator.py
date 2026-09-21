@@ -6,6 +6,7 @@ Source Inspection -> Preprocessing -> ML Feature Extraction ->
 Deterministic Cadastral Validation -> Digital Twin Registration -> Completion.
 """
 
+import os
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
 import shapely.affinity
@@ -72,6 +73,7 @@ class CadastralProcessingOrchestrator:
             if not part.is_empty and part.is_valid:
                 if part.geom_type == "MultiPolygon":
                     part = max(part.geoms, key=lambda g: g.area)
+                part = part.intersection(poly)
                 if part.geom_type == "Polygon":
                     partitions.append(GeoJSONPolygon(**shapely.geometry.mapping(part)).model_dump())
                 else:
@@ -272,6 +274,34 @@ class CadastralProcessingOrchestrator:
                 details={"step": "Extracting 3D heights and vertical strata via ML pipeline"}
             )
 
+            src_ev = payload.get("source_evidence") or {}
+            src_type = src_ev.get("source_type")
+            src_ref = src_ev.get("source_reference")
+            point_cloud_path = None
+            dsm_path = None
+
+            if src_type == "POINT_CLOUD":
+                candidates = [
+                    src_ref,
+                    os.path.join("data/ml/raw/lidar", os.path.basename(src_ref or "sample_pointcloud.las")),
+                    "data/ml/raw/lidar/sample_pointcloud.las"
+                ]
+                for cand in candidates:
+                    if cand and os.path.exists(cand):
+                        point_cloud_path = cand
+                        break
+
+            elif src_type == "DSM_DTM":
+                candidates = [
+                    src_ref,
+                    os.path.join("data/ml/processed/elevation_profiles", os.path.basename(src_ref or "usgs_3dep_dem_patch_512x512.tif")),
+                    "data/ml/processed/elevation_profiles/usgs_3dep_dem_patch_512x512.tif"
+                ]
+                for cand in candidates:
+                    if cand and os.path.exists(cand):
+                        dsm_path = cand
+                        break
+
             ml_pipeline = FeatureExtractionPipeline()
             ml_inputs = {
                 "footprint_geojson": bld_footprint,
@@ -282,13 +312,21 @@ class CadastralProcessingOrchestrator:
                 "floors_above_ground": payload.get("floor_count"),
                 "basement_count": payload.get("basement_count", 0),
                 "basement_floors": payload.get("basement_count", 0),
-                **(payload.get("source_evidence") or {})
+                "source_type": src_type,
+                "source_reference": src_ref,
+                "point_cloud_path": point_cloud_path,
+                "dsm_path": dsm_path,
+                **src_ev
             }
             ml_result = ml_pipeline.process(ml_inputs)
 
             estimated_height = ml_result.features.height_m if ml_result.features else (payload.get("total_height_m") or 15.0)
             strata_levels = ml_result.vertical_proposals or []
-            ground_z = payload.get("ground_elevation_m", 0.0) or 0.0
+            ground_z = (
+                getattr(ml_result.features, "ground_elevation_m", None)
+                if (ml_result.features and getattr(ml_result.features, "ground_elevation_m", None) is not None and getattr(ml_result.features, "ground_elevation_m", 0.0) > 0.0)
+                else (payload.get("ground_elevation_m", 0.0) or 0.0)
+            )
 
             # 4. Stage: CADASTRAL_CONSTRUCTION (Deterministic 3D Cadastre)
             JobManager.transition_stage(
@@ -311,14 +349,22 @@ class CadastralProcessingOrchestrator:
             base_count = sum(1 for s in strata_levels if "B" in s.level_code) or (payload.get("basement_count", 0) or 0)
             height_prov = next((p for p in ml_result.provenance if "HEIGHT" in p.source_id), None)
             floor_prov = next((p for p in ml_result.provenance if "FLOOR" in p.source_id), None)
+            fusion_outcome = getattr(ml_result, "fusion_outcome", None) or {}
+            conflict_info = fusion_outcome.get("conflict") or {}
             bld_spatial_metadata = {
-                "height_source": height_prov.source_type.value if height_prov else "OBSERVED_SURVEY_METADATA",
+                "height_source": height_prov.source_type.value if height_prov else (src_type or "OBSERVED_SURVEY_METADATA"),
                 "height_method": height_prov.method if height_prov else "EXPLICIT_METADATA",
                 "floor_source": floor_prov.source_type.value if floor_prov else "DETERMINISTIC_BASELINE",
                 "floor_method": floor_prov.method if floor_prov else "PARAMETRIC_STRATA_DECOMPOSITION",
                 "confidence": ml_result.confidence,
                 "uncertainty_m": ml_result.uncertainty_m,
-                "requires_review": ml_result.confidence < 0.70 or (height_prov and "AI" in height_prov.source_type.value)
+                "requires_review": ml_result.confidence < 0.70 or (height_prov and "AI" in height_prov.source_type.value) or conflict_info.get("review_required", False),
+                "source_evidence": payload.get("source_evidence"),
+                "fusion_outcome": fusion_outcome,
+                "conflict_detected": conflict_info.get("conflict_detected", False),
+                "conflict_severity": conflict_info.get("conflict_severity", "NONE"),
+                "why_selected": fusion_outcome.get("why_selected"),
+                "ai_status": fusion_outcome.get("ai_status"),
             }
 
             if existing_bld:
@@ -405,8 +451,32 @@ class CadastralProcessingOrchestrator:
                 unit_footprints = cls._partition_footprint(bld_footprint, units_per_floor)
 
                 src_meta = payload.get("source_evidence") or {}
-                src_type = src_meta.get("source_type") or "DRONE_PHOTOGRAMMETRY"
-                src_ref = src_meta.get("source_reference") or "survey_evidence.geojson"
+                resolved_src_type = height_prov.source_type.value if height_prov else (src_meta.get("source_type") or "DRONE_PHOTOGRAMMETRY")
+                height_meta = getattr(height_prov, "metadata", {}) or {}
+
+                selected_src = fusion_outcome.get("selected_source")
+                if height_meta.get("source_reference") and (selected_src == "POINT_CLOUD" or not str(height_meta["source_reference"]).lower().endswith((".las", ".laz"))):
+                    resolved_src_ref = height_meta["source_reference"]
+                elif selected_src == "POINT_CLOUD" and point_cloud_path:
+                    resolved_src_ref = os.path.basename(point_cloud_path)
+                elif selected_src in ("DSM_DTM", "RASTER", "DEM") and dsm_path:
+                    resolved_src_ref = os.path.basename(dsm_path)
+                elif selected_src in ("EXPLICIT_SURVEY_METADATA", "SURVEY_METADATA", "BUILDING_METADATA"):
+                    resolved_src_ref = payload.get("survey_number") or src_meta.get("deed_reference") or src_meta.get("survey_number") or "registered_cadastral_survey"
+                elif selected_src in ("CAD_FLOOR_PLAN", "OBSERVED_HEIGHT_DECOMPOSITION", "DRONE_PHOTOGRAMMETRY"):
+                    resolved_src_ref = src_meta.get("source_reference") or f"{selected_src.lower()}_record"
+                elif selected_src in ("AI_REGRESSION", "AI_HEIGHT_DECOMPOSITION"):
+                    resolved_src_ref = "models/height_estimator.onnx"
+                elif selected_src in ("DETERMINISTIC_CASCADE", "DETERMINISTIC_BASELINE", "EXPLICIT_FLOOR_COUNT"):
+                    resolved_src_ref = src_meta.get("source_reference") or "cadastral_parametric_rules"
+                else:
+                    resolved_src_ref = src_meta.get("source_reference") or "survey_evidence.geojson"
+
+                resolved_method = height_prov.method if height_prov else "PARAMETRIC_STRATA_DECOMPOSITION"
+                resolved_conf = height_prov.confidence if height_prov else (ml_result.confidence or 0.85)
+                resolved_unc = height_prov.uncertainty_m if (height_prov and height_prov.uncertainty_m is not None) else (ml_result.uncertainty_m or 0.30)
+                resolved_unc_basis = getattr(height_prov, "uncertainty_basis", None)
+                resolved_coverage = getattr(height_prov, "coverage", "VALID") or "VALID"
 
                 floor_units_tracker: Dict[str, int] = {}
                 for u_data in candidate_cadastre["candidate_units"]:
@@ -433,12 +503,45 @@ class CadastralProcessingOrchestrator:
                             floor_span=u_data.get("floor_span"),
                             spatial_metadata={
                                 "classification": u_data.get("classification"),
-                                "source": src_type,
-                                "source_type": src_type,
-                                "source_reference": src_ref,
-                                "confidence": u_data.get("confidence", 0.85),
-                                "uncertainty_m": u_data.get("uncertainty_m", 0.30),
-                                "stage": u_data.get("stage", "ESTIMATED")
+                                "source": resolved_src_type,
+                                "source_type": resolved_src_type,
+                                "source_reference": resolved_src_ref,
+                                "method": resolved_method,
+                                "confidence": resolved_conf,
+                                "uncertainty_m": resolved_unc,
+                                "uncertainty_basis": resolved_unc_basis,
+                                "coverage": resolved_coverage,
+                                "stage": u_data.get("stage", "ESTIMATED"),
+                                "point_count": height_meta.get("point_count"),
+                                "building_point_count": height_meta.get("building_point_count"),
+                                "ground_point_count": height_meta.get("ground_point_count"),
+                                "point_density_pts_m2": height_meta.get("point_density_pts_m2"),
+                                "surface_elevation_m": height_meta.get("surface_elevation_m"),
+                                "ground_elevation_m": height_meta.get("ground_elevation_m"),
+                                "observed_height_m": height_meta.get("observed_height_m") or height_meta.get("height_m") or (fusion_outcome.get("selected_height_m") if ("OBSERVED" in resolved_method or selected_src in ("POINT_CLOUD", "EXPLICIT_SURVEY_METADATA", "SURVEY_METADATA", "BUILDING_METADATA", "DRONE_PHOTOGRAMMETRY", "CAD_FLOOR_PLAN", "OBSERVED_HEIGHT_DECOMPOSITION")) else None),
+                                "horizontal_crs": height_meta.get("horizontal_crs") or "EPSG:32643",
+                                "ground_method": height_meta.get("ground_method") or resolved_method,
+                                "ai_model": height_meta.get("ai_model") or (
+                                    "NOT_USED_OBSERVED_EVIDENCE"
+                                    if (resolved_coverage == "VALID" and (
+                                        "OBSERVED" in resolved_method
+                                        or selected_src in ("POINT_CLOUD", "EXPLICIT_SURVEY_METADATA", "SURVEY_METADATA", "BUILDING_METADATA", "DRONE_PHOTOGRAMMETRY", "CAD_FLOOR_PLAN", "OBSERVED_HEIGHT_DECOMPOSITION")
+                                        or resolved_src_type in ("POINT_CLOUD", "SURVEY_METADATA", "BUILDING_METADATA", "DRONE_PHOTOGRAMMETRY", "CAD_FLOOR_PLAN", "OBSERVED_HEIGHT_DECOMPOSITION")
+                                    ))
+                                    else (
+                                        "NOT_USED_DETERMINISTIC"
+                                        if selected_src in ("EXPLICIT_FLOOR_COUNT", "DETERMINISTIC_CASCADE", "DETERMINISTIC_BASELINE")
+                                        else ("ONNX_HEIGHT_REGRESSOR_MLP" if selected_src in ("AI_REGRESSION", "AI_HEIGHT_DECOMPOSITION") else "FALLBACK")
+                                    )
+                                ),
+                                "fusion_outcome": fusion_outcome,
+                                "multi_source_evidence": fusion_outcome.get("candidates_evaluated", []),
+                                "selected_evidence": fusion_outcome.get("selected_source"),
+                                "why_selected": fusion_outcome.get("why_selected"),
+                                "ai_status": fusion_outcome.get("ai_status"),
+                                "conflict_detected": conflict_info.get("conflict_detected", False),
+                                "conflict_severity": conflict_info.get("conflict_severity", "NONE"),
+                                "conflict_details": conflict_info,
                             }
                         )
                         try:
@@ -493,7 +596,10 @@ class CadastralProcessingOrchestrator:
                 "anomalies": [a.model_dump() for a in ml_result.anomalies] if ml_result.anomalies else [a for a in dt.summary.anomalies_detected],
                 "ml_confidence": ml_result.confidence,
                 "ml_confidence_level": ml_result.confidence_level.value if hasattr(ml_result.confidence_level, "value") else str(ml_result.confidence_level),
-                "ml_uncertainty_m": ml_result.uncertainty_m
+                "ml_uncertainty_m": ml_result.uncertainty_m,
+                "fusion_outcome": fusion_outcome,
+                "conflict_detected": conflict_info.get("conflict_detected", False),
+                "conflict_severity": conflict_info.get("conflict_severity", "NONE"),
             }
 
             JobManager.mark_completed(

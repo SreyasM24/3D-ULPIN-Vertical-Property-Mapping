@@ -556,6 +556,8 @@ export default function App() {
               <ValidationIssues
                 clashFindings={validationReport.clash_findings || []}
                 rules={validationReport.evaluated_rules || []}
+                issues={validationReport.issues || []}
+                deductions={validationReport.quality_score?.deductions || []}
               />
             </>
           ) : (

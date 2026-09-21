@@ -149,12 +149,19 @@ class HeightEstimatorModel(BaseFeatureModel):
         merged_inputs = dict(inputs or {})
         merged_inputs.update(kwargs)
         inputs = merged_inputs
+        footprint_poly = inputs.get("footprint_geojson") or inputs.get("footprint")
+        evidence_audit: List[Dict[str, Any]] = []
 
         # -------------------------------------------------------------------
-        # Strategy 1: Observed LiDAR / DSM-DTM Difference Evidence
+        # Strategy 1: Observed DSM - DTM Difference Elevation Evidence
         # -------------------------------------------------------------------
         dsm_info = inputs.get("dsm_metadata") or inputs.get("dsm")
         dtm_info = inputs.get("dtm_metadata") or inputs.get("dtm")
+        dsm_path = (
+            inputs.get("dsm_path")
+            or (inputs.get("source_reference") if inputs.get("source_type") == "DSM_DTM" else None)
+        )
+
         if dsm_info and dtm_info:
             res = RasterPreprocessor.compute_height_difference(dsm_info, dtm_info)
             if res.get("status") == "CALCULATED" and res.get("height_m") is not None:
@@ -166,40 +173,128 @@ class HeightEstimatorModel(BaseFeatureModel):
                     "ground_elevation_m": res.get("ground_elevation_m"),
                     "top_elevation_m": res.get("top_elevation_m"),
                     "uncertainty_m": unc,
+                    "uncertainty_type": res.get("uncertainty_type", "DERIVED_FROM_RESOLUTION"),
+                    "uncertainty_basis": res.get("uncertainty_basis"),
                     "confidence": conf,
                     "confidence_level": ConfidenceLevel.HIGH if conf >= 0.85 else ConfidenceLevel.MEDIUM,
                     "method": "DSM_DTM_DIFFERENCE",
                     "provenance": "OBSERVED_ELEVATION_EVIDENCE",
                     "source": EvidenceSourceType.DSM_DTM,
-                    "stage": DataStage.ESTIMATED,
+                    "stage": DataStage.OBSERVED,
                     "status": "SUCCESS",
+                    "coverage": "VALID",
+                    "ai_model": "NOT_USED_OBSERVED_EVIDENCE",
+                    "evidence_metadata": res,
                     "explanation": res.get("explanation", "Height derived directly from DSM - DTM raster difference.")
                 }
+            else:
+                evidence_audit.append({
+                    "source": "DSM_DTM",
+                    "status": res.get("status"),
+                    "explanation": res.get("explanation")
+                })
+        elif dsm_path and isinstance(dsm_path, str) and os.path.exists(dsm_path):
+            # Inspect single raster file (e.g. USGS 3DEP DEM)
+            r_meta = RasterPreprocessor.inspect_raster(dsm_path)
+            model_t = r_meta.get("model_type", "DEM").upper()
+            if model_t in ("DEM", "DTM"):
+                # Single bare-earth DEM cannot derive building height without a surface DSM
+                elev_stats = r_meta.get("elevation_statistics", {})
+                dem_terrain_z = elev_stats.get("mean_m") or elev_stats.get("min_m")
+                if dem_terrain_z is not None and not inputs.get("ground_elevation_m"):
+                    inputs["ground_elevation_m"] = round(float(dem_terrain_z), 2)
+                evidence_audit.append({
+                    "source": f"{model_t}_RASTER",
+                    "source_file": os.path.basename(dsm_path),
+                    "status": "DEM_TERRAIN_EVIDENCE_ONLY",
+                    "coverage": "TERRAIN_ONLY",
+                    "horizontal_crs": r_meta.get("horizontal_crs"),
+                    "spatial_resolution_m": r_meta.get("spatial_resolution_m"),
+                    "terrain_elevation_m": dem_terrain_z,
+                    "explanation": "DEM terrain evidence only — bare-earth elevation provided, building surface model (DSM) not available to calculate height."
+                })
 
-        pc_info = inputs.get("pointcloud_metadata") or inputs.get("point_cloud")
-        if pc_info:
-            parsed = PointCloudPreprocessor.inspect_pointcloud(pc_info)
-            if parsed.get("status") in ("METADATA_EXTRACTED", "HEADER_READ"):
-                ground_surf = PointCloudPreprocessor.estimate_ground_and_surface(parsed)
-                h = ground_surf["height_m"]
-                if h > 0.0:
-                    conf = ground_surf["confidence"]
-                    unc = ground_surf["uncertainty_m"]
+        # -------------------------------------------------------------------
+        # Strategy 2: Observed LiDAR Point Cloud Evidence (Direct Spatial Clipping)
+        # -------------------------------------------------------------------
+        pc_source = (
+            inputs.get("point_cloud_path")
+            or inputs.get("point_cloud")
+            or inputs.get("pointcloud_metadata")
+            or (inputs.get("source_reference") if inputs.get("source_type") == "POINT_CLOUD" else None)
+        )
+        # If explicitly selected POINT_CLOUD or file path provided:
+        if pc_source:
+            # Check if it's a file on disk or metadata
+            if isinstance(pc_source, str) and footprint_poly and os.path.exists(pc_source):
+                clip_res = PointCloudPreprocessor.clip_pointcloud_to_footprint(
+                    las_source=pc_source,
+                    footprint_geojson=footprint_poly,
+                    source_crs=inputs.get("source_crs") or "EPSG:32643",
+                    target_crs=inputs.get("target_crs", "EPSG:4326")
+                )
+                if clip_res.get("status") == "VALID_OBSERVED_EVIDENCE" and clip_res.get("height_m") is not None:
+                    h = clip_res["height_m"]
+                    conf = clip_res["confidence"]
+                    unc = clip_res["uncertainty_m"]
+                    clip_res["ai_model"] = "NOT_USED_OBSERVED_EVIDENCE"
+                    clip_res["observed_height_m"] = h
                     return {
                         "height_m": h,
-                        "ground_elevation_m": ground_surf["ground_elevation_m"],
-                        "top_elevation_m": ground_surf["top_elevation_m"],
+                        "ground_elevation_m": clip_res["ground_elevation_m"],
+                        "top_elevation_m": clip_res["surface_elevation_m"],
                         "uncertainty_m": unc,
+                        "uncertainty_type": clip_res.get("uncertainty_type", "DERIVED_STATISTICAL"),
+                        "uncertainty_basis": clip_res.get("uncertainty_basis"),
                         "confidence": conf,
-                        "confidence_level": ConfidenceLevel.HIGH if conf >= 0.85 else ConfidenceLevel.MEDIUM,
-                        "method": ground_surf["method"],
+                        "confidence_level": ConfidenceLevel.HIGH if conf >= 0.70 else ConfidenceLevel.MEDIUM,
+                        "method": clip_res["method"],
                         "provenance": "OBSERVED_LIDAR",
                         "source": EvidenceSourceType.POINT_CLOUD,
-                        "stage": DataStage.ESTIMATED,
+                        "stage": DataStage.OBSERVED,
                         "status": "SUCCESS",
-                        "explanation": f"Height ({h:.2f}m) estimated from observed airborne LiDAR point cloud returns."
+                        "coverage": "VALID",
+                        "ai_model": "NOT_USED_OBSERVED_EVIDENCE",
+                        "evidence_metadata": clip_res,
+                        "explanation": clip_res["explanation"]
                     }
+                else:
+                    evidence_audit.append({
+                        "source": "POINT_CLOUD",
+                        "status": clip_res.get("status", "NO_COVERAGE"),
+                        "coverage": clip_res.get("coverage", "NOT_COVERING_TARGET"),
+                        "explanation": clip_res.get("explanation", "LiDAR artifact did not cover target building.")
+                    })
+            elif isinstance(pc_source, dict):
+                parsed = PointCloudPreprocessor.inspect_pointcloud(pc_source)
+                if parsed.get("status") in ("METADATA_EXTRACTED", "HEADER_READ"):
+                    ground_surf = PointCloudPreprocessor.estimate_ground_and_surface(parsed)
+                    h = ground_surf["height_m"]
+                    if h > 0.0:
+                        conf = ground_surf["confidence"]
+                        unc = ground_surf["uncertainty_m"]
+                        return {
+                            "height_m": h,
+                            "ground_elevation_m": ground_surf["ground_elevation_m"],
+                            "top_elevation_m": ground_surf["top_elevation_m"],
+                            "uncertainty_m": unc,
+                            "uncertainty_type": "METADATA_EXTRACTED",
+                            "confidence": conf,
+                            "confidence_level": ConfidenceLevel.HIGH if conf >= 0.85 else ConfidenceLevel.MEDIUM,
+                            "method": ground_surf["method"],
+                            "provenance": "OBSERVED_LIDAR",
+                            "source": EvidenceSourceType.POINT_CLOUD,
+                            "stage": DataStage.OBSERVED,
+                            "status": "SUCCESS",
+                            "coverage": "VALID",
+                            "ai_model": "NOT_USED_OBSERVED_EVIDENCE",
+                            "evidence_metadata": ground_surf,
+                            "explanation": f"Height ({h:.2f}m) estimated from observed LiDAR returns."
+                        }
 
+        # -------------------------------------------------------------------
+        # Strategy 3: Explicit Survey / Registered Architectural Metadata
+        # -------------------------------------------------------------------
         bld_meta = inputs.get("building_metadata") or {}
         explicit_height = bld_meta.get("total_height_m") or inputs.get("total_height_m") or inputs.get("height_m")
         if explicit_height is not None and float(explicit_height) > 0.0:
@@ -210,6 +305,7 @@ class HeightEstimatorModel(BaseFeatureModel):
                 "ground_elevation_m": ground_z,
                 "top_elevation_m": round(ground_z + h, 2),
                 "uncertainty_m": 0.1,
+                "uncertainty_type": "REGISTERED_SURVEY",
                 "confidence": 0.95,
                 "confidence_level": ConfidenceLevel.HIGH,
                 "method": "EXPLICIT_METADATA",
@@ -217,6 +313,8 @@ class HeightEstimatorModel(BaseFeatureModel):
                 "source": EvidenceSourceType.BUILDING_METADATA,
                 "stage": DataStage.OBSERVED,
                 "status": "SUCCESS",
+                "coverage": "VALID",
+                "evidence_audit": evidence_audit,
                 "explanation": f"Building height ({h:.2f}m) obtained directly from registered survey/architectural metadata."
             }
 
@@ -279,7 +377,9 @@ class HeightEstimatorModel(BaseFeatureModel):
                         "source": EvidenceSourceType.DRONE_PHOTOGRAMMETRY,
                         "stage": DataStage.ESTIMATED,
                         "status": "SUCCESS",
-                        "explanation": f"Inferred building height ({clamped_h:.2f}m) via trained neural regressor on footprint geometry.",
+                        "ai_model": "ACTIVE_ONNX_REGRESSION",
+                        "evidence_audit": evidence_audit,
+                        "explanation": f"Inferred building height ({clamped_h:.2f}m) via trained neural regressor on footprint geometry." + (f" (Note: {evidence_audit[0]['explanation']})" if evidence_audit else ""),
                         "processing_metadata": {
                             "mode": "AI_ONNX_INFERENCE",
                             "backend": "ONNX_RUNTIME",
@@ -322,6 +422,7 @@ class HeightEstimatorModel(BaseFeatureModel):
                 "source": EvidenceSourceType.ASSUMPTION_FALLBACK,
                 "stage": DataStage.ESTIMATED,
                 "status": "SUCCESS",
+                "ai_model": "FALLBACK_FLOOR_HEURISTIC",
                 "explanation": f"Inferred height ({estimated_h:.2f}m) based on {fl_count} floors using default floor heights ({default_floor_h}m)."
             }
 

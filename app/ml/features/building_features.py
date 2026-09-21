@@ -31,6 +31,7 @@ class BuildingFeatureExtractor:
         footprint_geojson: Dict[str, Any],
         height_m: Optional[float] = None,
         floor_count: Optional[int] = None,
+        ground_elevation_m: Optional[float] = None,
         source_type: EvidenceSourceType = EvidenceSourceType.BUILDING_METADATA,
         confidence: float = 0.90,
         uncertainty_m: Optional[float] = 0.2
@@ -66,6 +67,7 @@ class BuildingFeatureExtractor:
             area_m2=area_m2,
             perimeter_m=perimeter_m,
             height_m=height_m,
+            ground_elevation_m=ground_elevation_m,
             volume_m3=volume_m3,
             floor_count=floor_count,
             confidence=confidence,

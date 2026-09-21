@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   VerticalUnit,
   Building,
@@ -50,7 +50,11 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
   onClose,
   onSelectUnit,
 }) => {
-  const [activeTab, setActiveTab] = useState<'details' | 'provenance' | 'anomalies' | 'temporal'>('details');
+  const [activeTab, setActiveTab] = useState<'provenance' | 'details' | 'anomalies' | 'temporal'>('provenance');
+
+  useEffect(() => {
+    setActiveTab('provenance');
+  }, [selectedItem?.data?.id]);
 
   const propertyAnomalies = anomalies || digitalTwin?.anomalies || [];
 
@@ -114,16 +118,6 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
         {/* Navigation Tabs */}
         <div className="flex border-b border-[#2d3034] bg-[#18191b] px-4 text-xs font-medium">
           <button
-            onClick={() => setActiveTab('details')}
-            className={`py-2 px-3 border-b-2 transition-colors ${
-              activeTab === 'details'
-                ? 'border-[#c86446] text-[#f4f3ef]'
-                : 'border-transparent text-[#a09f99] hover:text-[#f4f3ef]'
-            }`}
-          >
-            Attributes
-          </button>
-          <button
             onClick={() => setActiveTab('provenance')}
             className={`py-2 px-3 border-b-2 transition-colors flex items-center gap-1.5 ${
               activeTab === 'provenance'
@@ -132,6 +126,16 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
             }`}
           >
             Provenance
+          </button>
+          <button
+            onClick={() => setActiveTab('details')}
+            className={`py-2 px-3 border-b-2 transition-colors ${
+              activeTab === 'details'
+                ? 'border-[#c86446] text-[#f4f3ef]'
+                : 'border-transparent text-[#a09f99] hover:text-[#f4f3ef]'
+            }`}
+          >
+            Attributes
           </button>
           {hasAnomalies && (
             <button
@@ -210,13 +214,33 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
                 </div>
               </div>
 
-              {/* Status and Confidence */}
+              {/* Primary Evidence & Quality Metrics */}
               <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between p-2 rounded bg-[#222428] border border-[#2d3034]">
-                  <span className="text-[#a09f99]">Data Stage:</span>
-                  <span className="font-mono text-[#f4f3ef] font-medium">{unit.data_stage}</span>
+                {/* Evidence Used Card */}
+                <div className="p-2.5 rounded bg-[#222428] border border-[#2d3034] flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] uppercase text-[#a09f99] font-medium block">Height Evidence Used:</span>
+                    <span className="font-mono text-xs font-semibold text-[#f4f3ef]">
+                      {unit.provenance?.selected_evidence || unit.provenance?.source_type || 'DETERMINISTIC_STRATA'}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className={`px-2 py-0.5 text-[9px] font-mono font-bold rounded border ${
+                      unit.provenance?.evidence_tier === 'OBSERVED' ? 'bg-[#4e8a5b]/20 text-[#5a9e69] border-[#4e8a5b]/40' :
+                      unit.provenance?.evidence_tier === 'AI_INFERENCE' ? 'bg-[#7c3aed]/20 text-[#c084fc] border-[#7c3aed]/40' :
+                      'bg-[#3b82f6]/20 text-[#60a5fa] border-[#3b82f6]/40'
+                    }`}>
+                      {unit.provenance?.evidence_tier || 'DETERMINISTIC'}
+                    </span>
+                    {unit.provenance?.uncertainty_m !== undefined && (
+                      <span className="text-[#d97757] font-mono text-[10px] block mt-0.5">
+                        ±{unit.provenance.uncertainty_m.toFixed(2)} m
+                      </span>
+                    )}
+                  </div>
                 </div>
 
+                {/* Validation Status */}
                 <div className="flex items-center justify-between p-2 rounded bg-[#222428] border border-[#2d3034]">
                   <span className="text-[#a09f99]">Validation Status:</span>
                   <span
@@ -237,11 +261,18 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
                   </span>
                 </div>
 
+                {/* Vertical Classification */}
                 <div className="flex items-center justify-between p-2 rounded bg-[#222428] border border-[#2d3034]">
-                  <span className="text-[#a09f99]">Vertical Class:</span>
+                  <span className="text-[#a09f99]">Vertical Classification:</span>
                   <span className="font-mono text-[#f4f3ef] font-medium">
                     {unit.vertical_classification || unit.classification || 'ELEVATED'}
                   </span>
+                </div>
+
+                {/* Data Stage */}
+                <div className="flex items-center justify-between p-2 rounded bg-[#222428] border border-[#2d3034]">
+                  <span className="text-[#a09f99]">Data Lifecycle Stage:</span>
+                  <span className="font-mono text-[#f4f3ef] font-medium">{unit.data_stage}</span>
                 </div>
 
                 {(unit.is_multi_floor || unit.unit_type === 'DUPLEX' || (unit.floor_span && unit.floor_span.length > 1)) && (
@@ -252,30 +283,6 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
                     </span>
                   </div>
                 )}
-
-                <div className="flex items-center justify-between p-2 rounded bg-[#222428] border border-[#2d3034]">
-                  <span className="text-[#a09f99]">ML Extraction Confidence:</span>
-                  <div className="text-right">
-                    <span
-                      className={`font-semibold ${
-                        unit.confidence === 'HIGH'
-                          ? 'text-[#4e8a5b]'
-                          : unit.confidence === 'MEDIUM'
-                          ? 'text-[#c98a2c]'
-                          : unit.confidence === 'LOW'
-                          ? 'text-[#b84d47]'
-                          : 'text-[#a09f99]'
-                      }`}
-                    >
-                      {unit.confidence || 'N/A (Deterministic)'}
-                    </span>
-                    {unit.uncertainty_m !== undefined && (
-                      <span className="text-[#a09f99] font-mono text-[11px] ml-1.5">
-                        (±{unit.uncertainty_m.toFixed(2)} m)
-                      </span>
-                    )}
-                  </div>
-                </div>
               </div>
             </>
           )}

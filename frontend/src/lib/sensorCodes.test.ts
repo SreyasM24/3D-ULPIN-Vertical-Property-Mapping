@@ -11,6 +11,7 @@
 import {
   resolveEvidenceSourceType,
   EVIDENCE_SOURCE_OPTIONS,
+  ALL_INTERNAL_EVIDENCE_SOURCE_OPTIONS,
   EvidenceSourceType,
 } from './sensorCodes.ts';
 
@@ -85,18 +86,32 @@ for (const enumVal of authoritativeEnums) {
   );
 }
 
-// Test 5: Verify all options in EVIDENCE_SOURCE_OPTIONS have valid backend enum values
+// Test 5: Verify user-facing options count and all internal options
 assertEqual(
   EVIDENCE_SOURCE_OPTIONS.length,
+  9,
+  'EVIDENCE_SOURCE_OPTIONS defines exactly 9 user-facing options (hiding degradation fallbacks)'
+);
+
+assertEqual(
+  ALL_INTERNAL_EVIDENCE_SOURCE_OPTIONS.length,
   authoritativeEnums.length,
-  `EVIDENCE_SOURCE_OPTIONS defines all ${authoritativeEnums.length} backend enum values`
+  `ALL_INTERNAL_EVIDENCE_SOURCE_OPTIONS defines all ${authoritativeEnums.length} backend enum values`
 );
 
 for (const opt of EVIDENCE_SOURCE_OPTIONS) {
   assertEqual(
     authoritativeEnums.includes(opt.value),
     true,
-    `Option '${opt.label}' has valid backend enum value '${opt.value}'`
+    `User-facing option '${opt.label}' has valid backend enum value '${opt.value}'`
+  );
+}
+
+for (const opt of ALL_INTERNAL_EVIDENCE_SOURCE_OPTIONS) {
+  assertEqual(
+    authoritativeEnums.includes(opt.value),
+    true,
+    `Internal option '${opt.label}' has valid backend enum value '${opt.value}'`
   );
 }
 

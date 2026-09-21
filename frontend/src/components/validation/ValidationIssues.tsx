@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ClashFinding, ValidationRuleResult } from '../../types/api.ts';
+import { ClashFinding, ValidationRuleResult, ValidationIssue } from '../../types/api.ts';
 import {
   AlertTriangle,
   XCircle,
@@ -14,11 +14,20 @@ import {
 interface ValidationIssuesProps {
   clashFindings: ClashFinding[];
   rules: ValidationRuleResult[];
+  issues?: ValidationIssue[];
+  deductions?: Array<{
+    dimension?: string;
+    rule_id?: string;
+    deduction: number;
+    reason: string;
+  }>;
 }
 
 export const ValidationIssues: React.FC<ValidationIssuesProps> = ({
   clashFindings,
   rules,
+  issues = [],
+  deductions = [],
 }) => {
   const [filter, setFilter] = useState<'ALL' | 'ERROR' | 'WARNING' | 'PASSED'>('ALL');
   const [expandedRuleId, setExpandedRuleId] = useState<string | null>(null);
@@ -32,12 +41,63 @@ export const ValidationIssues: React.FC<ValidationIssuesProps> = ({
 
   const categories = Array.from(new Set(rules.map((r) => r.category)));
 
-  const errorCount = rules.filter((r) => r.status === 'ERROR').length;
-  const warningCount = rules.filter((r) => r.status === 'WARNING').length;
+  const errorCount = rules.filter((r) => r.status === 'ERROR').length + issues.filter((i) => i.severity === 'ERROR' || i.severity === 'CRITICAL').length;
+  const warningCount = rules.filter((r) => r.status === 'WARNING').length + issues.filter((i) => i.severity === 'WARNING').length;
   const passedCount = rules.filter((r) => r.status === 'PASSED').length;
 
   return (
     <div className="space-y-6">
+      {/* 0. Critical Validation Errors & Issues (if any) */}
+      {issues.length > 0 && (
+        <div className="bg-[#1c1d20] border border-[#b84d47]/40 rounded-lg p-5 space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-[#2d3034]">
+            <div className="flex items-center gap-2">
+              <XCircle className="w-4 h-4 text-[#b84d47]" />
+              <h3 className="text-sm font-semibold text-[#f4f3ef]">
+                Failed Validation Rules ({issues.length})
+              </h3>
+            </div>
+            <span className="text-[11px] font-mono text-[#b84d47] font-semibold">Statutory Review Required</span>
+          </div>
+
+          <div className="space-y-2.5">
+            {issues.map((iss, idx) => (
+              <div key={idx} className="p-3 rounded bg-[#222428] border border-[#b84d47]/30 text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-xs text-[#f4f3ef]">{iss.rule_id}</span>
+                    <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-[#b84d47]/20 text-[#c45852] border border-[#b84d47]/40">
+                      {iss.severity}
+                    </span>
+                    <span className="text-[10px] text-[#a09f99] font-mono">[{iss.category}]</span>
+                  </div>
+                  {iss.entity_identifier && (
+                    <span className="font-mono text-[10px] text-[#a09f99]">Entity: {iss.entity_identifier}</span>
+                  )}
+                </div>
+
+                <p className="text-[#f4f3ef] text-[11px] leading-relaxed pl-1 border-l-2 border-[#b84d47]/60">
+                  <span className="text-[#a09f99] block text-[10px] uppercase font-semibold">Reason:</span>
+                  {iss.explanation}
+                </p>
+
+                {iss.actual_condition && (
+                  <div className="grid grid-cols-2 gap-2 text-[10px] font-mono bg-[#18191b] p-2 rounded">
+                    <div>Expected: <span className="text-[#5a9e69]">{iss.expected_condition}</span></div>
+                    <div>Actual: <span className="text-[#c45852]">{iss.actual_condition}</span></div>
+                  </div>
+                )}
+
+                {iss.suggested_remediation && (
+                  <div className="text-[10px] text-[#eab308] bg-[#c98a2c]/10 p-2 rounded border border-[#c98a2c]/20">
+                    <span className="font-semibold">Remediation: </span>{iss.suggested_remediation}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {/* 1. Volumetric Clash Findings (if any) */}
       {clashFindings.length > 0 && (
         <div className="bg-[#1c1d20] border border-[#2d3034] rounded-lg p-5 space-y-3">

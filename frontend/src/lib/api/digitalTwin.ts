@@ -76,16 +76,24 @@ export function normalizeDigitalTwin(raw: any): DigitalTwin {
         let normalizedProvenance: any = null;
         if (rawProv) {
           const rawSource = String(rawProv.source || rawProv.source_type || 'DETERMINISTIC_STRATA');
-          const isAi = rawSource.includes('AI') || String(rawProv.evidence_tier || '').includes('AI');
-          const isObserved = rawSource.includes('OBSERVED') || rawSource.includes('DRONE') || rawSource.includes('POINT_CLOUD');
+          const isAi = rawSource.includes('AI') || String(rawProv.evidence_tier || '').includes('AI') || rawProv.ai_status === 'ADVISORY_ESTIMATE';
+          const isObserved = rawSource.includes('OBSERVED') || rawSource.includes('DRONE') || rawSource.includes('POINT_CLOUD') || rawSource.includes('SURVEY') || rawSource.includes('LIDAR') || rawProv.evidence_tier === 'OBSERVED';
           const tier = rawProv.evidence_tier || (isAi ? 'AI_INFERENCE' : isObserved ? 'OBSERVED' : 'DETERMINISTIC');
 
           normalizedProvenance = {
+            ...rawProv,
             id: rawProv.id || `prov-${u.id}`,
             target_id: rawProv.target_id || u.id,
             source: rawSource,
-            source_type: rawProv.source_type || rawSource,
-            source_reference: rawProv.source_reference || rawParcel.source_evidence?.source_reference || 'demo_26011_drone_survey.geojson',
+            source_reference:
+              rawProv.source_reference ||
+              (rawProv.source_type === 'POINT_CLOUD'
+                ? (rawParcel.source_evidence?.source_reference || 'sample_pointcloud.las')
+                : rawProv.source_type?.includes('SURVEY') || rawProv.selected_evidence?.includes('SURVEY')
+                ? (rawParcel.ulpin ? `SURVEY-${rawParcel.ulpin}` : 'Registered Cadastral Survey')
+                : rawProv.source_type === 'AI_REGRESSION'
+                ? 'models/height_estimator.onnx'
+                : rawParcel.source_evidence?.source_reference || 'demo_26011_drone_survey.geojson'),
             method: rawProv.method || (tier === 'AI_INFERENCE' ? 'AI Inferred Strata Decomposition' : tier === 'OBSERVED' ? 'Direct Sensor Telemetry Strata Extrusion' : 'Parametric Cadastral Strata Decomposition'),
             model: rawProv.model || 'CadastralEngine3D',
             model_version: rawProv.model_version || '2.1.0',
@@ -158,11 +166,12 @@ export function normalizeDigitalTwin(raw: any): DigitalTwin {
       let normalizedProvenance: any = null;
       if (rawProv) {
         const rawSource = String(rawProv.source || rawProv.source_type || 'DETERMINISTIC_STRATA');
-        const isAi = rawSource.includes('AI') || String(rawProv.evidence_tier || '').includes('AI');
-        const isObserved = rawSource.includes('OBSERVED') || rawSource.includes('DRONE') || rawSource.includes('POINT_CLOUD');
+        const isAi = rawSource.includes('AI') || String(rawProv.evidence_tier || '').includes('AI') || rawProv.ai_status === 'ADVISORY_ESTIMATE';
+        const isObserved = rawSource.includes('OBSERVED') || rawSource.includes('DRONE') || rawSource.includes('POINT_CLOUD') || rawSource.includes('SURVEY') || rawSource.includes('LIDAR') || rawProv.evidence_tier === 'OBSERVED';
         const tier = rawProv.evidence_tier || (isAi ? 'AI_INFERENCE' : isObserved ? 'OBSERVED' : 'DETERMINISTIC');
 
         normalizedProvenance = {
+          ...rawProv,
           id: rawProv.id || `prov-${u.id}`,
           target_id: rawProv.target_id || u.id,
           source: rawSource,

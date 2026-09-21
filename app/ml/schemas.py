@@ -66,6 +66,9 @@ class SourceProvenance(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     confidence: float = Field(ge=0.0, le=1.0)
     uncertainty_m: Optional[float] = Field(default=None, ge=0.0)
+    coverage: Optional[str] = Field(default="VALID")
+    uncertainty_basis: Optional[str] = Field(default=None)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
 class BuildingDetectionResult(BaseModel):
@@ -92,6 +95,7 @@ class BuildingFeatureResult(BaseModel):
     area_m2: float
     perimeter_m: float
     height_m: Optional[float] = None
+    ground_elevation_m: Optional[float] = None
     volume_m3: Optional[float] = None
     floor_count: Optional[int] = None
     confidence: float = Field(ge=0.0, le=1.0)
@@ -138,3 +142,5 @@ class PipelineResult(BaseModel):
     provenance: List[SourceProvenance] = Field(default_factory=list)
     anomalies: List[AnomalyResult] = Field(default_factory=list)
     validation_ready: bool = False
+    fusion_outcome: Optional[Dict[str, Any]] = None
+    conflict_detected: bool = False

@@ -3,6 +3,7 @@ import { ParcelProcessJobRequest, LandParcel } from '../../types/api.ts';
 import {
   resolveNumericStateCode,
   resolveEvidenceSourceType,
+  getSourceMetaConfig,
   EVIDENCE_SOURCE_OPTIONS,
   EvidenceSourceType,
 } from '../../lib/cadastralCodes.ts';
@@ -62,7 +63,8 @@ export const ProcessingForm: React.FC<ProcessingFormProps> = ({
 
     const dCode = districtCode.trim() || undefined;
     const resolvedSource = resolveEvidenceSourceType(sourceType);
-    const ref = sourceReference.trim() || 'demo_26011_drone_survey.geojson';
+    const metaConfig = getSourceMetaConfig(resolvedSource);
+    const ref = sourceReference.trim() || metaConfig.defaultReference;
 
     const payload: ParcelProcessJobRequest = {
       parcel_id: parcelId.trim() || undefined,
@@ -312,7 +314,15 @@ export const ProcessingForm: React.FC<ProcessingFormProps> = ({
             <label className="text-[#a09f99] block mb-1">Source Sensor Type</label>
             <select
               value={sourceType}
-              onChange={(e) => setSourceType(e.target.value)}
+              onChange={(e) => {
+                const newSource = e.target.value;
+                setSourceType(newSource);
+                const nextMeta = getSourceMetaConfig(newSource);
+                // If previous reference was empty or incompatible with the newly selected source, swap to the source default
+                if (!sourceReference || !nextMeta.isCompatible(sourceReference.trim())) {
+                  setSourceReference(nextMeta.defaultReference);
+                }
+              }}
               className="w-full bg-[#222428] border border-[#34373d] text-[#f4f3ef] rounded p-2 focus:border-[#c86446] focus:outline-none"
             >
               {EVIDENCE_SOURCE_OPTIONS.map((opt) => (
@@ -324,14 +334,27 @@ export const ProcessingForm: React.FC<ProcessingFormProps> = ({
           </div>
 
           <div>
-            <label className="text-[#a09f99] block mb-1">Dataset Reference / Filename</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[#a09f99] block">{getSourceMetaConfig(sourceType).fieldLabel}</label>
+              <button
+                type="button"
+                onClick={() => setSourceReference(getSourceMetaConfig(sourceType).defaultReference)}
+                className="text-[10px] text-[#60a5fa] hover:underline"
+                title="Reset to recommended baseline reference for this sensor type"
+              >
+                Reset Default
+              </button>
+            </div>
             <input
               type="text"
               value={sourceReference}
               onChange={(e) => setSourceReference(e.target.value)}
               className="w-full bg-[#222428] border border-[#34373d] text-[#f4f3ef] rounded p-2 focus:border-[#c86446] focus:outline-none font-mono"
-              placeholder="e.g. Survey_Sector_14.geojson"
+              placeholder={getSourceMetaConfig(sourceType).placeholder}
             />
+            <p className="text-[10px] text-[#a09f99] mt-1 leading-relaxed">
+              {getSourceMetaConfig(sourceType).helpText}
+            </p>
           </div>
         </div>
       </div>

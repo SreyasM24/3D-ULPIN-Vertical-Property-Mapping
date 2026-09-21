@@ -86,6 +86,33 @@ UNIT_EAST_FOOTPRINT = {
     ]
 }
 
+# LiDAR Flight Benchmark Parcel (Strictly covers sample_pointcloud.las in UTM Zone 43N)
+DEMO_LIDAR_PARCEL_GEOJSON = {
+    "type": "Polygon",
+    "coordinates": [
+        [
+            [76.2390, 7.6940],
+            [76.2455, 7.6940],
+            [76.2455, 7.7000],
+            [76.2390, 7.7000],
+            [76.2390, 7.6940]
+        ]
+    ]
+}
+
+DEMO_LIDAR_BUILDING_FOOTPRINT = {
+    "type": "Polygon",
+    "coordinates": [
+        [
+            [76.2404, 7.6952],
+            [76.2440, 7.6952],
+            [76.2440, 7.6988],
+            [76.2404, 7.6988],
+            [76.2404, 7.6952]
+        ]
+    ]
+}
+
 
 def generate_demo_dataset():
     """Generates an end-to-end 3D cadastral hierarchy for demo and evaluation."""
@@ -99,14 +126,15 @@ def generate_demo_dataset():
 
     try:
         # 1. Clean existing demo records if any
-        existing_parcel = db.query(LandParcel).filter(LandParcel.survey_number == "DEMO-26011-001").first()
-        if existing_parcel:
-            print(f"[*] Removing existing demo parcel {existing_parcel.ulpin}...")
-            db.delete(existing_parcel)
-            db.commit()
+        for s_num in ["DEMO-26011-001", "DEMO-LIDAR-43N"]:
+            existing_p = db.query(LandParcel).filter(LandParcel.survey_number == s_num).first()
+            if existing_p:
+                print(f"[*] Removing existing demo parcel {existing_p.ulpin} ({s_num})...")
+                db.delete(existing_p)
+                db.commit()
 
-        # 2. Create 2D Land Parcel
-        print("[1/6] Registering 2D Land Parcel (Bhu-Aadhaar base)...")
+        # 2. Create 2D Land Parcel (Pune Benchmark)
+        print("[1/6] Registering 2D Land Parcel (Pune Benchmark - Bhu-Aadhaar base)...")
         p_in = ParcelCreate(
             state_code="MH",
             district_code="PUN",
@@ -121,6 +149,21 @@ def generate_demo_dataset():
         print(f"      Parcel Created: ID={parcel.id}")
         print(f"      2D ULPIN:       {parcel.ulpin}")
         print(f"      Geodetic Area:  {parcel.area_sqm:.2f} m2")
+
+        # Also create LiDAR Benchmark Parcel covering sample_pointcloud.las
+        print("[*] Registering Real LiDAR Flight Extent Parcel (Palakkad UTM 43N)...")
+        lidar_p_in = ParcelCreate(
+            state_code="32",
+            district_code="PKD",
+            village_code="678001",
+            survey_number="DEMO-LIDAR-43N",
+            subdivision_number="L1",
+            base_elevation_m=425.14,
+            geometry_geojson=GeoJSONPolygon(**DEMO_LIDAR_PARCEL_GEOJSON),
+            spatial_metadata={"source": "REAL LIDAR POINT CLOUD SURVEY", "dataset_type": "LIDAR_FLIGHT_COVERAGE", "crs": "EPSG:32643"}
+        )
+        lidar_parcel = CadastreService.create_parcel(db, lidar_p_in)
+        print(f"      LiDAR Parcel Created: ID={lidar_parcel.id}, ULPIN={lidar_parcel.ulpin}")
 
         # 3. Create 3D Building
         print("\n[2/6] Constructing 3D Building Structure...")
