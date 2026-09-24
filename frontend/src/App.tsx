@@ -30,6 +30,7 @@ import { parcelsApi } from './lib/api/parcels.ts';
 import { digitalTwinApi } from './lib/api/digitalTwin.ts';
 import { validationApi } from './lib/api/validation.ts';
 import { jobsApi } from './lib/api/jobs.ts';
+import { API_BASE_URL } from './lib/api/config.ts';
 import { AlertCircle, RefreshCw, Box, ShieldCheck, Layers } from 'lucide-react';
 
 export default function App() {
@@ -359,7 +360,7 @@ export default function App() {
         <div className="mb-6 p-3 rounded-lg bg-[#b84d47]/15 border border-[#b84d47]/30 flex items-center justify-between text-xs text-[#c45852]">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            <span>FastAPI backend is unreachable at <code>http://localhost:8000/api/v1</code>. Ensure the service is running.</span>
+            <span>FastAPI backend is unreachable at <code>{API_BASE_URL}</code>. Ensure the service is running.</span>
           </div>
           <button
             onClick={initSystem}
