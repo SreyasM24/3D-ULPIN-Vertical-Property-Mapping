@@ -14,7 +14,7 @@ interface ProcessingFormProps {
   isLoading?: boolean;
   activeParcel?: LandParcel | null;
   availableParcels?: LandParcel[];
-  onSelectParcel?: (parcel: LandParcel) => void;
+  onSelectParcel?: (parcel: LandParcel | null) => void;
 }
 
 export const ProcessingForm: React.FC<ProcessingFormProps> = ({
@@ -28,7 +28,7 @@ export const ProcessingForm: React.FC<ProcessingFormProps> = ({
   const [sourceReference, setSourceReference] = useState<string>('demo_26011_drone_survey.geojson');
 
   // Cadastral Identification Fields
-  const [parcelId, setParcelId] = useState<string>(activeParcel?.id || 'a9203ab6-88fa-42bc-8430-128e3c115ed0');
+  const [parcelId, setParcelId] = useState<string>(activeParcel?.id || '');
   const [surveyNumber, setSurveyNumber] = useState<string>(activeParcel?.survey_number || 'DEMO-26011-001');
   const [stateCode, setStateCode] = useState<string>(activeParcel?.state_code || 'MH');
   const [districtCode, setDistrictCode] = useState<string>(activeParcel?.district_code || 'PUN');
@@ -47,14 +47,17 @@ export const ProcessingForm: React.FC<ProcessingFormProps> = ({
   // Sync state whenever activeParcel updates from backend
   useEffect(() => {
     if (activeParcel) {
-      setParcelId(activeParcel.id);
-      setSurveyNumber(activeParcel.survey_number);
+      setParcelId(activeParcel.id || '');
+      setSurveyNumber(activeParcel.survey_number || '');
       if (activeParcel.state_code) setStateCode(activeParcel.state_code);
       if (activeParcel.district_code) setDistrictCode(activeParcel.district_code);
       if (activeParcel.village_code) setVillageCode(activeParcel.village_code);
       if (activeParcel.base_elevation_m != null || activeParcel.ground_elevation_amsl != null) {
         setGroundElevationM(activeParcel.base_elevation_m ?? activeParcel.ground_elevation_amsl ?? 560.0);
       }
+    } else {
+      // Clear parcel ID for a new survey registration
+      setParcelId('');
     }
   }, [activeParcel]);
 
@@ -111,16 +114,28 @@ export const ProcessingForm: React.FC<ProcessingFormProps> = ({
           </p>
         </div>
 
-        {activeParcel && (
-          <button
-            type="button"
-            onClick={handleApplyActiveParcel}
-            className="text-xs text-[#d97757] hover:underline flex items-center gap-1 font-medium"
-          >
-            <Database className="w-3.5 h-3.5" />
-            Sync Active Parcel
-          </button>
-        )}
+        {activeParcel ? (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (onSelectParcel) onSelectParcel(null);
+                setParcelId('');
+              }}
+              className="text-xs text-[#a09f99] hover:text-[#f4f3ef] hover:underline font-medium"
+            >
+              + New Survey
+            </button>
+            <button
+              type="button"
+              onClick={handleApplyActiveParcel}
+              className="text-xs text-[#d97757] hover:underline flex items-center gap-1 font-medium"
+            >
+              <Database className="w-3.5 h-3.5" />
+              Sync Active Parcel
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {/* Active Backend Parcel Context Banner */}
@@ -139,17 +154,23 @@ export const ProcessingForm: React.FC<ProcessingFormProps> = ({
             </div>
           </div>
 
-          {availableParcels.length > 1 && onSelectParcel && (
+          {onSelectParcel && (
             <div className="flex items-center gap-1.5 self-end sm:self-auto">
-              <label className="text-[#a09f99] text-[11px]">Switch:</label>
+              <label className="text-[#a09f99] text-[11px]">Parcel:</label>
               <select
                 value={activeParcel.id}
                 onChange={(e) => {
-                  const target = availableParcels.find((p) => p.id === e.target.value);
-                  if (target) onSelectParcel(target);
+                  if (e.target.value === '__NEW__') {
+                    onSelectParcel(null);
+                    setParcelId('');
+                  } else {
+                    const target = availableParcels.find((p) => p.id === e.target.value);
+                    if (target) onSelectParcel(target);
+                  }
                 }}
                 className="bg-[#18191b] border border-[#34373d] text-[#f4f3ef] text-[11px] rounded px-2 py-1 focus:outline-none"
               >
+                <option value="__NEW__">+ New Survey (Register Anew)</option>
                 {availableParcels.map((p) => (
                   <option key={p.id} value={p.id}>
                     SN #{p.survey_number}
@@ -160,8 +181,28 @@ export const ProcessingForm: React.FC<ProcessingFormProps> = ({
           )}
         </div>
       ) : (
-        <div className="p-3 bg-[#222428]/60 rounded border border-[#2d3034] text-xs text-[#a09f99]">
-          No pre-existing cadastral parcel loaded. The engine will register the boundary and construct the 3D cadastre hierarchy anew.
+        <div className="p-3 bg-[#222428]/60 rounded border border-[#2d3034] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-[#a09f99]">
+          <span>No pre-existing cadastral parcel loaded. The engine will register the boundary and construct the 3D cadastre hierarchy anew.</span>
+          {availableParcels.length > 0 && onSelectParcel && (
+            <div className="flex items-center gap-1.5 self-end sm:self-auto flex-shrink-0">
+              <label className="text-[#a09f99] text-[11px]">Existing:</label>
+              <select
+                value=""
+                onChange={(e) => {
+                  const target = availableParcels.find((p) => p.id === e.target.value);
+                  if (target) onSelectParcel(target);
+                }}
+                className="bg-[#18191b] border border-[#34373d] text-[#f4f3ef] text-[11px] rounded px-2 py-1 focus:outline-none"
+              >
+                <option value="" disabled>Load Existing...</option>
+                {availableParcels.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    SN #{p.survey_number}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       )}
 

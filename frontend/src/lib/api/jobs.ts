@@ -26,8 +26,10 @@ export async function submitParcelProcessingJob(
     source_reference: 'demo_26011_drone_survey.geojson',
   };
 
+  const cleanParcelId = (payload.parcel_id && typeof payload.parcel_id === 'string' && payload.parcel_id.trim()) ? payload.parcel_id.trim() : undefined;
   const finalPayload: ParcelProcessJobRequest = {
     ...payload,
+    parcel_id: cleanParcelId,
     state_code: resolveNumericStateCode(payload.state_code),
     district_code: district,
     revenue_district_code: district,
@@ -66,8 +68,9 @@ export async function createSurveyJob(request: ParcelProcessJobRequest | CreateS
     source_reference: 'demo_26011_drone_survey.geojson',
   };
 
+  const cleanReqParcelId = (request.parcel_id && typeof request.parcel_id === 'string' && request.parcel_id.trim()) ? request.parcel_id.trim() : undefined;
   const processPayload: ParcelProcessJobRequest = {
-    parcel_id: request.parcel_id || undefined,
+    parcel_id: cleanReqParcelId,
     survey_number: request.survey_number,
     district_code: district,
     revenue_district_code: district,

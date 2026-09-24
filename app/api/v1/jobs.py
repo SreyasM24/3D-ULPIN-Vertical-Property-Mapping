@@ -24,6 +24,7 @@ from app.jobs.manager import JobManager
 from app.jobs.executor import JobExecutor
 from app.jobs.orchestrator import CadastralProcessingOrchestrator
 from app.schemas.common import APIResponse
+from app.models.parcel import LandParcel
 from app.core.exceptions import EntityNotFoundException, CadastreException
 
 
@@ -119,13 +120,21 @@ def submit_parcel_processing_job(
     3D ULPIN generation -> Deterministic validation -> Digital twin assembly.
     Returns immediately with HTTP 202 Accepted.
     """
+    req_parcel_id = request.parcel_id.strip() if (request.parcel_id and isinstance(request.parcel_id, str) and request.parcel_id.strip()) else None
+
+    # CASE A: If parcel_id is explicitly supplied, verify that the LandParcel exists in the database
+    if req_parcel_id:
+        existing_parcel = db.get(LandParcel, req_parcel_id)
+        if not existing_parcel:
+            raise EntityNotFoundException("LandParcel", req_parcel_id)
+
     # Check for active duplicate job (Idempotency)
     active_job = None
-    if request.parcel_id:
+    if req_parcel_id:
         active_job = JobManager.find_active_job(
             db=db,
             job_type=JobType.END_TO_END_PARCEL_PROCESS.value,
-            entity_id=request.parcel_id
+            entity_id=req_parcel_id
         )
     if active_job:
         return APIResponse(
@@ -140,7 +149,7 @@ def submit_parcel_processing_job(
         db=db,
         job_type=JobType.END_TO_END_PARCEL_PROCESS.value,
         entity_type="PARCEL",
-        entity_id=request.parcel_id,
+        entity_id=req_parcel_id,
         request_id=req_id,
         source_metadata={
             "survey_number": request.survey_number,
@@ -150,11 +159,14 @@ def submit_parcel_processing_job(
         }
     )
 
+    req_payload = request.model_dump()
+    req_payload["parcel_id"] = req_parcel_id
+
     JobExecutor.dispatch(
         background_tasks,
         CadastralProcessingOrchestrator.run_end_to_end_parcel_processing,
         job.job_id,
-        payload=request.model_dump()
+        payload=req_payload
     )
 
     return APIResponse(

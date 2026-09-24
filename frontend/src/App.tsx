@@ -337,9 +337,15 @@ export default function App() {
   };
 
   // Select parcel and immediately clear old state before fetching details
-  const handleSelectParcel = async (parcel: LandParcel) => {
+  const handleSelectParcel = async (parcel: LandParcel | null) => {
     setSelectedParcel(parcel);
-    await loadParcelDetails(parcel);
+    if (parcel) {
+      await loadParcelDetails(parcel);
+    } else {
+      setDigitalTwin(null);
+      setValidationReport(null);
+      setSelectedItem(null);
+    }
   };
 
   return (
@@ -376,7 +382,10 @@ export default function App() {
       {activeTab === 'overview' && (
         <div className="space-y-8 sm:space-y-10 animate-fadeIn pb-6">
           <OverviewHero
-            onStartSurvey={() => setActiveTab('survey')}
+            onStartSurvey={() => {
+              setSelectedParcel(null);
+              setActiveTab('survey');
+            }}
             onViewDemoDigitalTwin={handleLoadDemo}
           />
 
