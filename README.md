@@ -1,8 +1,7 @@
 # 3D ULPIN & Vertical Property Mapping System
-### AI-Assisted Evidence Extraction + Deterministic 3D Cadastral Construction Engine
 
-**Smart India Hackathon (SIH 2026) | Problem Statement: PS 26011**  
-**Team: THE OVERFITTERS**  
+**THE OVERFITTERS — Smart India Hackathon (SIH 2026)**  
+**Problem Statement: PS 26011**  
 **Primary Track:** Ministry of Rural Development / Department of Land Resources (DoLR) & Geospatial Land Administration
 
 [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
@@ -14,6 +13,8 @@
 [![Backend Tests](https://img.shields.io/badge/Pytest-191%20Passed%20(100%25)-brightgreen.svg)](tests/)
 [![Production Frontend](https://img.shields.io/badge/Vercel-Live%20Deploy-black?logo=vercel)](https://3d-ulpin-pi.vercel.app)
 [![Production Backend](https://img.shields.io/badge/Render-FastAPI%20API-46E3B7?logo=render)](https://threed-ulpin-vertical-property-mapping.onrender.com/api/v1/health)
+
+The **3D ULPIN & Vertical Property Mapping System** is an end-to-end cadastral intelligence platform engineered for **Smart India Hackathon (SIH 2026, PS 26011)**. The platform bridges multi-source geospatial sensor observations (airborne LiDAR point clouds, satellite RGB tiles, elevation rasters, CAD drawings, and deed records) with 3D land administration, generating topologically clean 3D cadastral digital twins, collision-resistant prototype 3D ULPIN identifiers, and automated rule-based validation reports.
 
 ---
 
@@ -33,227 +34,99 @@
 
 ---
 
-## 1. Quick Project Snapshot (Executive Summary)
+## Problem Statement
 
-```
-+----------------------------------------------------------------------------------------------------+
-|                                    PROJECT AT A GLANCE                                             |
-+--------------------------+-------------------------------------------------------------------------+
-| Challenge (PS 26011)     | 2D land parcels cannot represent vertical high-rises, basements, air    |
-|                          | rights, or unauthorized vertical structural expansions.                 |
-+--------------------------+-------------------------------------------------------------------------+
-| Implemented Solution     | AI-assisted multi-sensor evidence fusion + deterministic 3D cadastral   |
-|                          | stratification + prototype 3D ULPIN generation + 102 validation rules.   |
-+--------------------------+-------------------------------------------------------------------------+
-| Core Philosophy          | AI proposes evidence -> Fusion evaluates -> Engine constructs ->        |
-|                          | Validator verifies. Physical sensor evidence overrides AI inference.    |
-+--------------------------+-------------------------------------------------------------------------+
-| AI / ML Models           | 2 Trained ONNX Models: LightweightUNet (488K params, SpaceNet 1) &       |
-|                          | HeightRegressorMLP (5.2K params, 3DBAG). Runs on CPU via ONNX Runtime.  |
-+--------------------------+-------------------------------------------------------------------------+
-| Cadastral Identity       | Prototype 3D ULPIN: <BASE14>-<LEVEL>-<UNIT>-<CHECKSUM> with Luhn Mod-36. |
-+--------------------------+-------------------------------------------------------------------------+
-| Verification Status      | 191 Backend Pytests (100% pass) + 58 Frontend Tests + 0 TypeScript errs |
-+--------------------------+-------------------------------------------------------------------------+
-| Web Digital Twin         | Three.js WebGL viewer with subterranean basement mode & temporal diff.  |
-+--------------------------+-------------------------------------------------------------------------+
-```
+### The 2D Cadastral Limitation in Vertical India
+Conventional land administration across India operates almost exclusively on **2D cadastral frameworks** (parcels delineated solely by horizontal latitude and longitude boundaries). In dense modern urban centers, multi-storey residential complexes, commercial office towers, metro transit hubs, and subterranean utility vaults share identical ground footprints.
+
+This 2D approach creates acute administrative and legal challenges:
+- **Multi-Floor Title Invisibility**: Hundreds of distinct legal unit titles (apartments, offices, retail spaces) collapse into a single 2D ground parcel record.
+- **Vertical Unit Ambiguity**: Vertical boundaries between separate private properties are unrepresented in statutory cadastral records.
+- **Subterranean Blindness**: Basements, parking structures, and underground utility corridors lack georeferenced cadastral boundaries, creating encroachment and infrastructure conflict risks.
+- **Shared Spaces & Common Areas**: Lobbies, stairwells, and structural circulation cores lack clear topological delineation from private unit prisms.
+- **Heterogeneous Geospatial Evidence**: Satellite imagery, aerial drone orthophotos, airborne LiDAR point clouds, and architectural CAD drawings arrive in conflicting formats, coordinate systems, and precision levels.
+- **Need for 3D Property Representation**: Without a standardized 3D parcel identifier extending the 14-character Bhu-Aadhaar (ULPIN), vertical titles cannot be systematically indexed, searched, or audited.
 
 ---
 
-## 2. Problem Statement (SIH 26011)
+## Our Proposed Solution
 
-In modern high-density urban areas across India, land administration systems operate almost exclusively on **2D cadastral frameworks** (parcels defined purely by horizontal latitude and longitude polygons).
-
-This 2D model creates critical real-world limitations:
-1. **Vertical Title Invisibility**: Hundreds of distinct legal units (apartments, offices, retail spaces) collapse into a single 2D ground footprint.
-2. **Subterranean Blindness**: Basements, transit tunnels, and underground utility vaults lack georeferenced boundaries, creating encroachment and utility conflict risks.
-3. **Air Rights & Cantilever Ambiguity**: Overhanging structures and vertical easements lack standardized digital identifiers.
-4. **Undetected Vertical Expansions**: Unauthorized floor additions or rooftop alterations cannot be systematically detected from 2D parcel maps.
-5. **No 3D Unique Identifier**: India's standard 14-character Bhu-Aadhaar (ULPIN) identifies ground parcels but possesses no standardized vertical stratification extension.
-
----
-
-## 3. Proposed Solution & What We Built
-
-We designed and implemented an integrated, end-to-end **3D Cadastral Intelligence Platform**:
-
-1. **Multi-Source Evidence Ingestion**: Ingests real-world geospatial sensor observations (airborne LiDAR point clouds, satellite RGB tiles, bare-earth DEM rasters, architectural CAD plans, and registered deed surveys).
-2. **AI Evidence Extraction**: Extracts candidate building footprints (U-Net ONNX) and estimates advisory heights (MLP ONNX) with empirical uncertainty bounds ($\pm\text{m}$).
-3. **Multi-Source Evidence Fusion**: Verifies geographic coverage, computes empirical sensor uncertainties, and detects conflicts using statistical 2-sigma thresholds ($\Delta_{\text{tol}} = \max(2.5\text{m}, 2.0\sqrt{u_1^2 + u_2^2})$).
-4. **Deterministic 3D Cadastral Engine**: Constructs topologically clean 3D building envelopes, vertical strata slices, and volumetric unit prisms (Ground, Elevated, Basement).
-5. **Prototype 3D ULPIN Generation**: Formulates a collision-resistant, hierarchical 3D identifier extending the 14-character Bhu-Aadhaar standard with dual Luhn Mod-36 checksums.
-6. **102-Rule Validation Engine**: Algorithmically audits geometry, topological containment, vertical continuity, and pairwise 3D spatial clash freedom.
-7. **Interactive 3D Digital Twin**: WebGL visualization with orbital controls, subterranean inspection mode, and multi-epoch temporal 3D change auditing.
-
----
-
-## 4. Why This Is More Than a 3D Viewer
-
-| Dimension | Generic 3D Map / Viewer | Our Implemented Cadastral Engine |
-|---|---|---|
-| **Data Representation** | Extruded solid boxes without internal logic | **True Volumetric Strata**: Stratified units, floor slabs, basements, and air rights aligned with ISO 19152 LADM. |
-| **Identification** | Arbitrary database IDs or random UUIDs | **Prototype 3D ULPIN**: Geodetic hash base + vertical strata code + unit code + Luhn mod-36 dual checksum. |
-| **AI Role** | Blindly trusts neural network outputs | **Advisory Model**: AI proposes with empirical uncertainty; physical survey evidence supersedes AI inference. |
-| **Spatial Gating** | Processes any imagery regardless of bounds | **Strict Gating**: Out-of-bounds sensor returns are flagged as `REJECTED_OUT_OF_BOUNDS` with zero elevation fabrication. |
-| **Cadastral Integrity** | None | **102 Automated Validation Rules**: Evaluates boundary self-intersections, 3D containment, slab gaps, and pairwise 3D clashes. |
-| **Change Intelligence** | Manual site inspections | **Multi-Epoch 3D Delta Engine**: Calculates volumetric difference, detects unauthorized vertical additions, and dispatches surveyor flags. |
-
----
-
-## 5. Core Design Principle
+To solve Problem Statement 26011, we built an integrated, verifiable **3D Cadastral Intelligence Platform** rooted in a strict architectural governance invariant:
 
 > **AI proposes → Evidence Fusion evaluates → Deterministic Engine constructs → Validator verifies**
 
-```
-+--------------------------------------------------------------------------------------------------+
-|                                    SEPARATION OF CONCERNS                                        |
-+-------------------------------+------------------------------------------------------------------+
-| 1. AI Proposes Evidence       | Neural networks extract candidate footprints and suggest height  |
-|    (Advisory Evidence)        | estimates when physical sensors are missing. Output is treated   |
-|                               | strictly as advisory evidentiary input, never unvetted legal fact|
-+-------------------------------+------------------------------------------------------------------+
-| 2. Evidence Fusion Evaluates  | Gating audits spatial bounds. Empirical sensor uncertainties are |
-|    (Discrepancy Engine)       | calculated. 2-sigma tolerance checks flag conflicting sources    |
-|                               | and require human review. Physical evidence overrides AI priors. |
-+-------------------------------+------------------------------------------------------------------+
-| 3. Deterministic Construction | Cadastral building polyhedra, vertical floor levels, and unit    |
-|    (Authoritative Geometry)   | prisms are extruded using rigid geometric algorithms and legal   |
-|                               | municipal building parameters.                                   |
-+-------------------------------+------------------------------------------------------------------+
-| 4. Validation Verifies        | 102 rigid algorithmic validation rules check 2D planarity, 3D    |
-|    (Quality Audit)            | containment hierarchy, vertical slab continuity, and pairwise    |
-|                               | clash freedom. Yields an objective Quality Score (0-100).        |
-+-------------------------------+------------------------------------------------------------------+
-```
+The system treats artificial intelligence strictly as an **advisory evidence source**, never as authoritative legal fact. Physical sensor observations (LiDAR, total station telemetry, architectural CAD plans) always supersede neural estimates. When independent evidence sources disagree beyond statistical 2-sigma thresholds, the platform logs structured conflict records and dispatches surveyor review notices rather than silently averaging conflicting measurements.
 
 ---
 
-## 6. End-to-End System Architecture
+## What We Built
+
+The system comprises 13 integrated functional modules:
+
+1. **Multi-Source Geospatial Ingestion**: Supports real-world ASPRS LAS/LAZ point clouds, satellite/drone high-resolution RGB imagery, USGS/SRTM digital elevation models, CAD DXF drawings, and surveyor deeds.
+2. **CRS & Spatial Coverage Gating**: Enforces coordinate reference system verification, dynamic UTM reprojection, and spatial bounding-box gating. Out-of-coverage data is marked `REJECTED_OUT_OF_BOUNDS` with zero height fabrication.
+3. **AI-Assisted Building Extraction**: Segment candidate building footprints from aerial RGB tiles using an optimized Lightweight U-Net ONNX model (488,001 parameters).
+4. **Advisory Height Estimation**: Predicts advisory building height from geometric footprint features and local terrain elevation using an MLP regressor ONNX model (5,217 parameters).
+5. **Multi-Source Evidence Fusion**: Arbitrates among 9 sensor sources via a documented priority hierarchy, calculating empirical measurement uncertainties for each source.
+6. **Conflict Detection Engine**: Evaluates discrepancies between independent height sources using statistical 2-sigma combined tolerances, flagging significant conflicts for surveyor adjudication.
+7. **Deterministic 3D Cadastral Construction**: Extrudes polyhedral building envelopes and slices parametric vertical strata using legal municipal building parameters.
+8. **Vertical Unit Generation**: Delineates volumetric property unit prisms across Ground, Elevated, Basement, and Multi-Level Infrastructure classifications.
+9. **Prototype 3D ULPIN Generator**: Formulates a hierarchical vertical identifier extending the 14-character Bhu-Aadhaar standard with dual Luhn Mod-36 checksum verification.
+10. **102-Rule Validation Engine**: Executes rigid algorithmic verification across 6 dimensions (geometry, CRS, hierarchy, slab continuity, 3D clash freedom, attributes), generating a calibrated 0–100 Quality Score.
+11. **Interactive 3D Digital Twin**: High-performance Three.js WebGL visualization featuring layer controls, subterranean basement inspection mode, and an interactive property inspector.
+12. **Temporal Change Intelligence**: Compares multi-epoch resurveys against registered baselines to detect unauthorized vertical additions or horizontal encroachment.
+13. **Auditable Provenance Lineage**: Tracks immutable acquisition sensor, processing method, and uncertainty bounds for every unit and geometry in the digital twin.
+
+---
+
+## Technical Approach
 
 ```mermaid
-flowchart TB
-    subgraph S1 ["1. Geospatial & Sensor Ingestion Layer"]
-        D1["Airborne LiDAR (.las / .laz)"]
-        D2["Satellite / Drone Imagery (0.5m GSD)"]
-        D3["Elevation Rasters (DEM / DSM GeoTIFF)"]
-        D4["Architectural Drawings (CAD DXF / DWG)"]
-        D5["Survey Deeds & Metadata"]
-    end
-
-    subgraph S2 ["2. Spatial Coverage & Coordinate Gating"]
-        G1["Spatial Bounding Box Intersection Check"]
-        G2["EPSG Reprojection & Datum Verification"]
-        G3{"Within Parcel Bounds?"}
-        D1 & D2 & D3 --> G1 --> G2 --> G3
-        G3 -- No --> REJ["Status: REJECTED_OUT_OF_BOUNDS<br/>(Zero Height Fabrication)"]
-        G3 -- Yes --> G4["Gated Sensor Evidence"]
-    end
-
-    subgraph S3 ["3. AI Evidence Extraction (ONNX Runtime)"]
-        M1["LightweightUNet (488K params)<br/>Footprint Segmentation ONNX"]
-        M2["HeightRegressorMLP (5.2K params)<br/>Advisory Height Regression ONNX"]
-        D2 --> M1
-        M1 & D3 --> M2
-        M1 --> TAG1["Tag: AI_ONNX_INFERENCE"]
-        M2 --> TAG2["Tag: AI_REGRESSION (Advisory)"]
-    end
-
-    subgraph S4 ["4. Multi-Source Evidence Fusion & Conflict Engine"]
-        F1["Empirical Sensor Uncertainty Modeling"]
-        F2["Statistical 2-Sigma Conflict Check:<br/>Delta_tol = max(2.5m, 2.0 * sqrt(u1^2 + u2^2))"]
-        F3{"Conflict Exceeds Tolerance?"}
-        G4 & TAG1 & TAG2 & D4 & D5 --> F1 --> F2 --> F3
-        F3 -- Yes --> CONF["Log EvidenceConflictRecord<br/>review_required = true<br/>Preserve Both Values"]
-        F3 -- No --> ADJ["Resolve Authoritative Height<br/>Apply Sensor Priority Matrix"]
-    end
-
-    subgraph S5 ["5. Deterministic 3D Cadastral Construction"]
-        C1["Polyhedral Building Shell Extrusion (Z_base to Z_roof)"]
-        C2["Parametric Floor Strata Slicing (FloorLevel)"]
-        C3["Volumetric 3D Unit Prisms (Ground, Elevated, Basement)"]
-        ADJ --> C1 --> C2 --> C3
-    end
-
-    subgraph S6 ["6. 102-Rule Algorithmic Validation Suite"]
-        V1["2D Boundary & Topology Checks"]
-        V2["3D Containment & Vertical Slab Continuity"]
-        V3["Pairwise 3D Polyhedral Clash Freedom Check"]
-        V4["Cadastral Quality Score (0-100, Grades A-D)"]
-        C3 --> V1 --> V2 --> V3 --> V4
-    end
-
-    subgraph S7 ["7. Prototype 3D ULPIN Generation"]
-        U1["Geodetic SHA-256 Base-14 Hash"]
-        U2["Strata Code (L00, L01, B01)"]
-        U3["Unit Code (U001, U201)"]
-        U4["Dual Luhn Mod-36 Checksum"]
-        V4 --> U1 & U2 & U3 & U4 --> U5["Format: BASE14-LEVEL-UNIT-CHECKSUM"]
-    end
-
-    subgraph S8 ["8. 3D Digital Twin & Temporal Auditor"]
-        T1["Three.js WebGL Interactive Scene"]
-        T2["Subterranean Basement Mode"]
-        T3["Multi-Epoch Temporal 3D Change Comparator"]
-        T4["Surveyor Review Dispatch & Flagging"]
-        U5 --> T1 & T2
-        T1 --> T3 --> T4
-    end
+flowchart TD
+    A["Multi-Source Geospatial Data<br/>(LiDAR LAS, Drone RGB, DEM GeoTIFF, CAD DXF, Survey Deeds)"] --> B["Preprocessing & CRS Spatial Gating<br/>(EPSG Verification, Boundary Overlap Check)"]
+    B --> C["AI & Evidence Extraction<br/>(U-Net Footprint ONNX, Height Regressor ONNX, Derived Uncertainty)"]
+    C --> D["Multi-Source Evidence Fusion<br/>(Sensor Priority Hierarchy, Uncertainty Weighting)"]
+    D --> E["Conflict Detection Engine<br/>(Statistical 2-Sigma Discrepancy Evaluation)"]
+    E --> F["Deterministic 3D Cadastral Engine<br/>(Polyhedral Shells, Parametric Strata Decomposition)"]
+    F --> G["Prototype 3D ULPIN Generation<br/>(Base-14 Geodetic Hash + Strata Code + Unit Code + Luhn Mod-36)"]
+    G --> H["102-Rule Algorithmic Validation Suite<br/>(Geometry, Containment, Slab Continuity, 3D Clash Freedom)"]
+    H --> I["Interactive 3D Digital Twin<br/>(Three.js WebGL Volumetric Scene & Subterranean Mode)"]
+    I --> J["Temporal 3D Change Audit<br/>(Multi-Epoch Volumetric Delta & Surveyor Review Dispatch)"]
 ```
+
+### Stage Summary
+- **Preprocessing & Gating**: Ensures coordinate reference systems match (e.g., EPSG:32643 / UTM Zone 43N) and rejects sensor files that do not spatially overlap target parcel footprints.
+- **AI Extraction**: Proposes candidate 2D polygons and advisory height priors with explicit uncertainty bounds.
+- **Fusion & Conflict**: Selects authoritative height based on physical sensor priority and raises human review flags if sources disagree.
+- **Cadastral Construction**: Decomposes buildings into floor levels ($3.8\text{m}$ ground, $3.0\text{m}$ typical upper, $2.8\text{m}$ basement) and subdivides floors into private unit prisms.
+- **Identification & Validation**: Assigns collision-resistant 3D ULPINs and verifies geometry and topology across 102 rigid rules.
+- **Digital Twin & Temporal**: Renders interactive 3D volumetric units in WebGL and tracks changes across multi-epoch surveys.
 
 ---
 
-## 7. Multi-Source Evidence Hierarchy
+## Data & Evidence Sources
 
-The fusion engine evaluates up to 9 distinct candidate evidence sources using a strict priority hierarchy:
+The platform evaluates up to 9 distinct candidate evidence sources using documented priority rules:
 
-```
-[Level 1: Registered Survey Deed / Registry Record]  (Priority 1 - Legal Ground Truth)
-                         |
-[Level 2: Architectural CAD Floor Plans (.dxf)]      (Priority 2 - Structural Measurements)
-                         |
-[Level 3: Airborne LiDAR Point Cloud (.las / .laz)]  (Priority 3 - Physical Laser Returns)
-                         |
-[Level 4: Drone Aerial Photogrammetry (.geojson)]    (Priority 4 - Dense Photogrammetric Models)
-                         |
-[Level 5: Bare-Earth Elevation Rasters (DEM/DTM)]    (Priority 5 - Terrain Base Elevations Only)
-                         |
-[Level 6: Total Station Field Height Telemetry]      (Priority 6 - Field Point Samples)
-                         |
-[Level 7: Statutory Surveyor Storey Declaration]     (Priority 7 - Official Storey Count)
-                         |
-[Level 8: Advisory AI Height Regressor (ONNX)]       (Priority 8 - Fallback Prior with Warning)
-                         |
-[Level 9: Parametric Municipal Code Baseline (NBC)]  (Priority 9 - 3.8m + 3.0m Fallback)
-```
-
-| Source Category | Supported Formats | Uncertainty ($u$) | Role in Pipeline | Priority |
+| Evidence Source | Supported Formats | Role in Pipeline | Reliability & Handling | Priority |
 |---|---|---|---|---|
-| **Survey Deed / Registered Metadata** | Deed Records, Registry Survey ID | $\pm 0.10\text{ m}$ | Authoritative legal ground truth; overrides sensor estimates | **1 (Highest)** |
-| **Architectural CAD Drawings** | `.dxf`, `.dwg` | $\pm 0.15\text{ m}$ | Structural as-built floor plans; precise floor-to-floor heights | **2** |
-| **Airborne LiDAR Point Cloud** | `.las`, `.laz` (ASPRS Class 2) | $0.30 + \frac{5.0}{\sqrt{\rho}}\text{ m}$ | Physical laser returns; isolates bare-earth datum and rooftop P95 | **3** |
-| **Drone Photogrammetry** | `.geojson`, Point Mesh | $\pm 0.50\text{ m}$ | High-density visual telemetry; calibrated against terrain | **4** |
-| **Elevation Rasters (DEM/DTM)** | GeoTIFF (USGS 3DEP, SRTM) | $\pm 1.00\text{ m}$ | Bare-earth terrain elevation only ($Z_{\text{ground}}$); never converted to building height | **5** |
-| **Total Station Field Telemetry** | `.obs`, Field Vectors | $\pm 0.20\text{ m}$ | Direct on-site optical measurement | **6** |
-| **Surveyor Storey Declaration** | Registry Storey Records | $\pm 0.50\text{ m}$ | Official declared floor count | **7** |
-| **Advisory AI Height Regressor** | `models/height_estimator.onnx` | $\pm 2.32\text{ m}$ | Neural network regression on 2D footprint; **flags surveyor review** | **8** |
-| **Parametric Building Code (NBC)**| Standard Municipal Rules | $\pm 1.20\text{ m}$ | Deterministic floor multiplier ($3.8\text{m} + (N-1) \times 3.0\text{m}$) | **9 (Lowest)** |
+| **Survey Deed / Registered Metadata** | Registry Deeds, Land Records | Ground truth legal declarations | Strongest evidence; statutory ground truth | **1 (Highest)** |
+| **Architectural CAD Drawings** | `.dxf`, `.dwg` | Structural floor plans | High reliability; precise floor heights | **2** |
+| **Airborne LiDAR Point Cloud** | `.las`, `.laz` (ASPRS Class 2) | Physical surface laser returns | Coverage gated; isolates ground & rooftop P95 | **3** |
+| **Drone Photogrammetry** | `.geojson`, Point Mesh | Dense visual survey models | Calibrated against terrain elevation | **4** |
+| **Elevation Rasters (DEM/DTM)** | GeoTIFF (USGS 3DEP, SRTM) | Bare-earth terrain datum | Type validated; terrain base only ($Z_{\text{ground}}$) | **5** |
+| **Total Station Field Telemetry** | `.obs`, Field Vectors | Ground survey measurements | Direct field observation | **6** |
+| **Surveyor Storey Declaration** | Registry Declarations | Official storey count | Surveyor-declared floor count | **7** |
+| **Advisory AI Height Regressor** | `models/height_estimator.onnx` | Geometric height prediction | Advisory prior only; **flags surveyor review** | **8** |
+| **Parametric Building Code (NBC)**| Standard Municipal Rules | Fallback strata multiplier | Deterministic baseline ($3.8\text{m} + 3.0\text{m}$) | **9 (Lowest)** |
 
 ---
 
-## 8. Machine Learning Pipeline & ONNX Artifacts
+## AI / ML Models
 
-The system incorporates two lightweight neural networks deployed via **ONNX Runtime (CPU)** with graceful deterministic fallbacks.
+The system incorporates two trained neural networks exported to **ONNX Runtime (CPU)** with graceful deterministic fallbacks.
 
-```
-models/
-|-- building_detector.onnx           (1,959,421 bytes / 1.87 MB)
-|-- building_detector_metadata.json  (Architecture, parameters, training config, SpaceNet 1 metrics)
-|-- height_estimator.onnx            (22,275 bytes / 22.3 KB)
-`-- height_estimator_metadata.json   (Architecture, parameters, training config, 3DBAG metrics)
-```
-
-### 8.1 Building Footprint Detector (`BuildingDetector_LOD1`)
+### Building Footprint Segmentation (`BuildingDetector_LOD1`)
 
 | Attribute | Specification |
 |---|---|
@@ -261,12 +134,12 @@ models/
 | **Model Architecture** | Lightweight Convolutional U-Net with Skip Connections |
 | **Parameter Count** | **488,001 parameters** (1.87 MB float32 ONNX weights) |
 | **Training Dataset** | SpaceNet 1 (Rio de Janeiro, 0.5m GSD 3-band RGB, 50 paired tiles, 2,180 verified building polygons) |
-| **Runtime Engine** | ONNX Runtime 1.20+ (CPU optimized, zero GPU dependency) |
+| **Runtime Engine** | ONNX Runtime 1.20+ (CPU optimized, single-thread friendly) |
 | **Inference Latency** | **17.86 ms** median (25.66 ms P95) |
 | **Verified Test Metrics** | **IoU: 0.5001** \| **Dice/F1: 0.6667** \| **Precision: 0.6193** \| **Recall: 0.7220** \| **Pixel Accuracy: 0.9318** |
 | **Fallback Protocol** | Falls back to observed parcel survey boundary (`PASS_THROUGH_OBSERVED`) if imagery is absent |
 
-### 8.2 Building Height Regressor (`HeightEstimator_Cascade`)
+### Building Height Regressor (`HeightEstimator_Cascade`)
 
 | Attribute | Specification |
 |---|---|
@@ -276,22 +149,54 @@ models/
 | **Training Dataset** | 3DBAG Open Dataset (Delft, Netherlands; AHN4 airborne LiDAR + Kadaster 2D footprints; 1,220 samples) |
 | **Runtime Engine** | ONNX Runtime 1.20+ (CPU optimized) |
 | **Inference Latency** | **38.38 ms** median (48.86 ms P95) |
-| **Verified Test Metrics** | **MAE: 2.323 m** \| **Median AE: 0.901 m** \| **RMSE: 3.869 m** \| **P90 AE: 5.334 m** \| **$R^2$: 0.0357** |
-| **Limitations** | **Advisory Prior Only**: Reflects European morphology; low $R^2$ indicates 2D footprints contain limited height variance without LiDAR |
+| **Verified Test Metrics** | **MAE: 2.323 m** \| **Median AE: 0.901 m** \| **RMSE: 3.869 m** \| **P90 AE: 5.334 m** \| **R^2: 0.0357** |
+| **Documented Limitation** | **Advisory Prior Only**: Trained on European morphology; low R^2 reflects that 2D footprints alone contain limited height variance without LiDAR |
 
 ---
 
-## 9. LiDAR Point Cloud Processing Pipeline
+## Evidence Fusion & Conflict Detection
+
+AI predictions are **never automatically trusted**. The fusion engine (`MultiSourceEvidenceFusionEngine`) evaluates candidate evidence across spatial coverage, empirical uncertainty, and source priority.
 
 ```mermaid
 flowchart TD
-    A["Raw LAS / LAZ File<br/>(ASPRS Point Cloud)"] --> B["CRS & Header Verification<br/>(e.g., EPSG:32643 / UTM 43N)"]
-    B --> C["Spatial Bounding Box Intersection<br/>(Check overlap with 2D parcel footprint)"]
-    C --> D{"Intersects Parcel?"}
+    E1["Evidence Source A<br/>Height: H1, Uncertainty: u1"] & E2["Evidence Source B<br/>Height: H2, Uncertainty: u2"] --> CMP["Compare Absolute Height Discrepancy<br/>Delta = |H1 - H2|"]
+    E1 & E2 --> UNC["Compute Combined 2-Sigma Tolerance<br/>Delta_tol = max(2.5m, 2.0 * sqrt(u1^2 + u2^2))"]
+    CMP & UNC --> CHK{"Is Delta > Delta_tol?"}
+    CHK -- No --> PASS["Statistically Consistent<br/>Resolve height via sensor priority hierarchy"]
+    CHK -- Yes --> CONFLICT["Flag EvidenceConflictRecord<br/>Set review_required = true<br/>Preserve BOTH raw measurements"]
+```
+
+### Conflict Tolerance Formula
+
+When two independent evidence sources produce heights $H_1$ and $H_2$ with uncertainties $u_1$ and $u_2$, their discrepancy is evaluated against the combined 2-sigma tolerance:
+
+$$
+\Delta = |H_1 - H_2|
+$$
+
+$$
+\Delta_{\text{tol}} = \max(2.5\text{ m},\; 2.0 \times \sqrt{u_1^2 + u_2^2})
+$$
+
+If $\Delta > \Delta_{\text{tol}}$:
+1. An `EvidenceConflictRecord` is logged with severity (`HIGH`, `MEDIUM`, `LOW`).
+2. Mandatory `review_required = true` is set, requiring revenue surveyor review.
+3. **Both measurements are preserved in the Digital Twin metadata**; measurements are never silently averaged or smoothed.
+
+---
+
+## LiDAR Point Cloud Pipeline
+
+```mermaid
+flowchart TD
+    A["Raw LAS / LAZ Point Cloud"] --> B["CRS & Header Verification<br/>(e.g., EPSG:32643)"]
+    B --> C["Spatial Bounding Box Intersection Check"]
+    C --> D{"Overlaps Footprint?"}
     D -- No --> REJ["Status: REJECTED_OUT_OF_BOUNDS<br/>(Zero Height Fabrication)"]
-    D -- Yes --> E["Spatial Footprint Clipping<br/>(Isolate points within boundary)"]
-    E --> F["ASPRS Class 2 Ground Isolation<br/>(Extract bare-earth returns)"]
-    E --> G["Surface Return Isolation<br/>(Filter roof points)"]
+    D -- Yes --> E["Spatial Footprint Clipping"]
+    E --> F["ASPRS Class 2 Ground Return Extraction"]
+    E --> G["Surface Return Isolation"]
     F --> H["Ground Elevation: Z_ground<br/>(Median of ground returns)"]
     G --> I["Robust Roof Elevation: Z_roof<br/>(95th percentile P95 filtering)"]
     H & I --> J["Observed Building Height:<br/>H = Z_roof - Z_ground"]
@@ -299,176 +204,150 @@ flowchart TD
     K --> L["Multi-Source Evidence Fusion"]
 ```
 
-### Mathematical Formulations
+### LiDAR Mathematical Formulations
 
 - **Building Height**:
-  $$H = Z_{\text{roof}} - Z_{\text{ground}}$$
+  $$
+  H = Z_{\text{roof}} - Z_{\text{ground}}
+  $$
 
-- **Robust 95th Percentile Roof Elevation** (eliminates rooftop antennae, water tanks, and bird noise):
-  $$Z_{\text{roof}} = P_{95}\left(\left\{ z_i \;\middle|\; (x_i, y_i) \in P \right\}\right)$$
+- **Robust 95th Percentile Roof Elevation** (filters rooftop antennae, water tanks, and noise):
+  $$
+  Z_{\text{roof}} = P_{95}(z_i)
+  $$
 
-- **Empirical Sensor Uncertainty from Point Density** ($\rho = \text{points}/\text{m}^2$):
-  $$u = 0.30 + \frac{5.0}{\sqrt{\rho}} \quad (\text{meters})$$
-
----
-
-## 10. Evidence Conflict Detection & Adjudication
-
-```mermaid
-flowchart TD
-    E1["Evidence Source A<br/>Height: H1, Uncertainty: u1"] & E2["Evidence Source B<br/>Height: H2, Uncertainty: u2"] --> CMP["Compare Absolute Height Discrepancy<br/>Delta = |H1 - H2|"]
-    E1 & E2 --> UNC["Compute Combined 2-Sigma Tolerance<br/>Delta_tol = max(2.5m, 2.0 * sqrt(u1^2 + u2^2))"]
-    CMP & UNC --> CHK{"Is Delta > Delta_tol?"}
-    CHK -- No --> PASS["Statistically Consistent<br/>Resolve height via sensor priority matrix"]
-    CHK -- Yes --> CONFLICT["Flag EvidenceConflictRecord<br/>Set review_required = true<br/>Preserve BOTH raw measurements"]
-```
-
-- **Statistical 2-Sigma Threshold**:
-  $$\Delta_{\text{tol}} = \max\left(2.5\text{ m},\; 2.0 \times \sqrt{u_1^2 + u_2^2}\right)$$
-
-- **Non-Silent Adjudication Policy**: When discrepancy exceeds $\Delta_{\text{tol}}$ (e.g., registered survey deed says $30.0\text{m}$ while LiDAR measures $18.21\text{m}$):
-  1. A structured `EvidenceConflictRecord` is logged with severity (`HIGH`, `MEDIUM`, `LOW`).
-  2. Mandatory `review_required = true` is raised for qualified revenue surveyors.
-  3. **Both measurements are preserved in the Digital Twin metadata**; measurements are never silently averaged or smoothed.
+- **Empirical Uncertainty from Point Density** ($\rho = \text{points}/\text{m}^2$):
+  $$
+  u = 0.30 + \frac{5.0}{\sqrt{\rho}} \text{ m}
+  $$
 
 ---
 
-## 11. Deterministic 3D Cadastral Hierarchy
+## Deterministic 3D Cadastral Engine
+
+The cadastral engine models vertical property rights through strict topological primitives aligned with **ISO 19152 LADM**:
 
 ```mermaid
 flowchart TD
-    P["LandParcel (LoD 0)<br/>Authoritative 2D Surface Boundary<br/>Identified by Base 14-char Bhu-Aadhaar ULPIN"]
+    P["LandParcel (LoD 0)<br/>Authoritative 2D Surface Boundary<br/>Identified by 14-char Bhu-Aadhaar ULPIN"]
     P --> B["Building (LoD 1/2)<br/>Polyhedral Building Shell<br/>Ground elevation Z_base to rooftop Z_roof"]
     B --> F["FloorLevel (LoD 2+)<br/>Vertical Strata Slices (B01, L00, L01)<br/>Elevation range [Z_min, Z_max]"]
     F --> U["VerticalUnit (LoD 3)<br/>3D Volumetric Property Prisms<br/>Ground, Elevated, Basement, Infrastructure"]
     U --> O["OwnershipRecord<br/>Proprietary Share %, Encumbrances<br/>Privacy-hashed Citizen Identifier"]
 ```
 
-### Hierarchy Dimensions
-
-| Entity Level | Cadastral Representation | Vertical Range | Identifiers |
-|---|---|---|---|
-| **`LandParcel`** | 2D geodetic surface boundary polygon | Surface terrain datum | 14-character Bhu-Aadhaar ULPIN |
-| **`Building`** | 3D polyhedral shell containing structure | $[Z_{\text{base}}, Z_{\text{roof}}]$ | Building Code (e.g., `BLD-AUTO-01`) |
-| **`FloorLevel`** | Horizontal strata slice across building | $[Z_{\text{floor\_min}}, Z_{\text{floor\_max}}]$ | Level Code (`B01`, `L00`, `L01`, `ROF`) |
-| **`VerticalUnit`** | Volumetric property prism for private title | Unit vertical bounding box | **Prototype 3D ULPIN** |
-| **`OwnershipRecord`**| Legal title, share %, encumbrances | Associated with Unit | Citizen ID (privacy-hashed) |
+### Hierarchy Definitions
+- **`LandParcel`** (LoD 0): The authoritative 2D cadastral parcel polygon on the earth's surface. Identified by a 14-character geodetic Bhu-Aadhaar ULPIN.
+- **`Building`** (LoD 1/2): The 3D polyhedral shell situated within the parcel. Bounded by footprint coordinates, ground elevation $Z_{\text{base}}$, and roof elevation $Z_{\text{roof}}$.
+- **`FloorLevel`** (LoD 2+): Vertical strata slices corresponding to architectural storeys. Defined by ordinal index, floor code (`B01`, `L00`, `L01`), and vertical bounds $[Z_{\text{min}}, Z_{\text{max}}]$.
+- **`VerticalUnit`** (LoD 3): Individual 3D property units representing private ownership titles. Supported unit types: `GROUND_LEVEL`, `ELEVATED`, `UNDERGROUND` (basement parking/storage), and `MULTI_LEVEL_INFRASTRUCTURE` (duplexes/utility shafts).
+- **`OwnershipRecord`**: Citizen proprietary share percentages and encumbrances linked to specific vertical units. Citizen identifiers use SHA-256 privacy hashing.
 
 ---
 
-## 12. Prototype 3D ULPIN Specification
+## Prototype 3D ULPIN
 
 The system implements an engineering prototype extending India's 14-character Bhu-Aadhaar into 3D:
 
-$$\mathbf{\text{3D ULPIN}} = \underbrace{\mathbf{86A84BD932562C}}_{\text{Base 14-Char Geodetic ULPIN}} - \underbrace{\mathbf{L03}}_{\text{Strata Code}} - \underbrace{\mathbf{U302}}_{\text{Unit Code}} - \underbrace{\mathbf{K9}}_{\text{Dual Checksum}}$$
+```
+Format:  <BASE-14-ULPIN> - <LEVEL-CODE> - <UNIT-CODE> - <CHECKSUM>
+Example: 86A84BD932562C  -     L03      -    U302     -    K9
+```
 
 1. **Base 14 Characters**: Formed from the geodetic centroid coordinates (latitude/longitude) hashed via SHA-256 and mapped to a 14-character alphanumeric string terminated by a Luhn mod-36 check character.
-2. **Strata Code (3 Characters)**: Identifies the vertical level:
-   - `L00`: Ground floor (elevation $Z_0$ to $Z_0 + 3.8\text{m}$)
-   - `L01`, `L02`, `L03`: First, second, third elevated floors
-   - `B01`, `B02`: Subterranean basement levels
-   - `ROF`: Rooftop / solar air-rights level
+2. **Level Code (3 Characters)**: Identifies the vertical stratum (`L00` ground, `L01` first floor, `B01` basement, `ROF` rooftop).
 3. **Unit Code (4 Characters)**: Unique unit identifier within that vertical stratum (`U001`, `U302`, `UB01`).
 4. **Dual Luhn Mod-36 Checksum (2 Characters)**: A cascading check code computed across all preceding 21 characters. Detects 100% of single-character transcription errors and character transpositions.
 
-> **Legal Disclaimer**: *The 3D ULPIN implemented herein is an engineering prototype developed for the SIH 26011 competition. It is not claimed to be an official gazetted standard of the Government of India or the Department of Land Resources (DoLR).*
+> **Important Notice:** *This is a project-level prototype format developed for the SIH 26011 competition and is not claimed to be an official Government of India 3D ULPIN standard.*
 
 ---
 
-## 13. Algorithmic Cadastral Validation Engine (102 Rules)
+## Validation Engine
 
 Every parcel, building, floor, and unit passes through an automated validation suite executing **102 distinct verification rules** across six dimensions:
 
-```
-+--------------------------------------------------------------------------------------------------+
-|                            102 CADASTRAL VALIDATION RULES BREAKDOWN                              |
-+--------------------------+--------+--------------------------------------------------------------+
-| Dimension                | Rules  | Key Algorithmic Verifications                                |
-+--------------------------+--------+--------------------------------------------------------------+
-| 1. Geometry & CRS        | 18     | Shapely is_valid, closed boundary rings, non-zero area, CCW  |
-|                          |        | vertex ordering, valid EPSG code, UTM bounding coordinates   |
-+--------------------------+--------+--------------------------------------------------------------+
-| 2. Spatial Hierarchy     | 22     | Building strictly within parcel; units strictly within       |
-|                          |        | building shell; subterranean units within underground bounds |
-+--------------------------+--------+--------------------------------------------------------------+
-| 3. Vertical Continuity   | 16     | Slab overlap freedom (Z_min >= Z_prev_max); zero elevation   |
-|                          |        | gaps between storeys; consistent subterranean negative datum |
-+--------------------------+--------+--------------------------------------------------------------+
-| 4. 3D Clash Detection    | 18     | Pairwise 3D axis-aligned bounding box (AABB) intersection;   |
-|                          |        | polyhedral mesh intersection volume == 0 for private units   |
-+--------------------------+--------+--------------------------------------------------------------+
-| 5. Attribute Integrity   | 14     | Valid 3D ULPIN checksums, non-empty survey numbers, owner    |
-|                          |        | share percentage sum == 100%, non-null strata codes          |
-+--------------------------+--------+--------------------------------------------------------------+
-| 6. Evidence Consistency  | 14     | Sensor uncertainty <= 5.0m; LiDAR density >= 1.0 pt/m2;     |
-|                          |        | conflict discrepancy <= 2-sigma tolerance threshold          |
-+--------------------------+--------+--------------------------------------------------------------+
-| TOTAL ACTIVE RULES       | 102    | Fully deterministic Python implementation with 0 mock rules  |
-+--------------------------+--------+--------------------------------------------------------------+
-```
+| Dimension | Rules Executed | Key Algorithmic Verifications |
+|---|---|---|
+| **1. Geometry & CRS** | 18 rules | Shapely `is_valid`, closed boundary rings, non-zero area, CCW vertex ordering, valid EPSG code, UTM bounds |
+| **2. Spatial Hierarchy** | 22 rules | Building strictly within parcel; units strictly within building shell; subterranean units within underground bounds |
+| **3. Vertical Continuity** | 16 rules | Slab overlap freedom ($Z_{\text{min}} \ge Z_{\text{prev}}$); zero elevation gaps between storeys; consistent subterranean datum |
+| **4. 3D Clash Detection** | 18 rules | Pairwise 3D axis-aligned bounding box (AABB) intersection; polyhedral mesh intersection volume $= 0$ for private units |
+| **5. Attribute Integrity** | 14 rules | Valid 3D ULPIN checksums, non-empty survey numbers, owner share percentage sum $= 100\%$, non-null strata codes |
+| **6. Evidence Consistency** | 14 rules | Sensor uncertainty $\le 5.0\text{m}$; LiDAR density $\ge 1.0\text{ pt/m}^2$; conflict discrepancy $\le 2$-sigma tolerance |
+| **TOTAL ACTIVE RULES** | **102 rules** | Fully deterministic Python implementation with 0 mock rules |
 
-### Quality Score & Grading System
+### Quality Score & Grading Formula
 
-$$\text{Score} = 100 - \sum \text{Penalties}_{\text{errors}} - \sum \text{Penalties}_{\text{warnings}}$$
+$$
+\text{Score} = 100 - \sum \text{Penalty}_{\text{error}} - \sum \text{Penalty}_{\text{warning}}
+$$
 
-- **Grade A (90 – 100)**: Fully compliant. Clean topology, no 3D clashes, all checksums valid, ready for digital twin registration.
-- **Grade B (75 – 89)**: Functionally valid with minor advisory warnings (e.g., fallback AI height used, sparse LiDAR returns).
-- **Grade C (50 – 74)**: Discrepancies detected. Evidence conflicts flagged; human surveyor review mandated.
+- **Grade A (90–100)**: Fully compliant. Clean topology, no 3D clashes, all checksums valid. Ready for digital twin registration.
+- **Grade B (75–89)**: Functionally valid with minor advisory warnings (e.g., fallback AI height used, sparse LiDAR returns).
+- **Grade C (50–74)**: Discrepancies detected. Evidence conflicts flagged; human surveyor review mandated.
 - **Grade D (< 50)**: Critical validation failure. Self-intersecting boundaries, 3D unit clashes, or missing survey geometry. Registration rejected.
 
-> **Advisory Notice**: *The Cadastral Validation Score is an algorithmic technical data quality audit. It does not constitute a statutory endorsement or guarantee of legal ownership title.*
+> **Advisory Notice:** *The Cadastral Validation Score is an algorithmic technical data quality audit. It does not constitute a statutory endorsement or guarantee of legal ownership title.*
 
 ---
 
-## 14. 3D Digital Twin Viewer & Temporal Change Engine
+## 3D Digital Twin Viewer
 
-### 14.1 Interactive WebGL Digital Twin
-- **Three.js Volumetric Rendering**: Renders parcel boundaries, polyhedral building shells, and stratified 3D unit prisms.
+The frontend provides an interactive WebGL Digital Twin powered by **Three.js** and **React**:
+
+- **Volumetric Rendering**: Real-time rendering of parcel ground footprints, building envelopes, and stratified 3D unit prisms.
+- **Layer & View Controls**: Toggle parcel boundaries, building shells, floor levels, underground units, air rights, and wireframe modes.
 - **Subterranean Mode**: Lowers ground plane opacity to inspect underground parking bays, basement storage, and utility vaults.
 - **Dynamic Property Inspector**: Displays selected unit dimensions ($X, Y, Z$), floor area ($\text{m}^2$), gross volume ($\text{m}^3$), owner shares, and 3D ULPIN with one-click copy.
 - **Lineage Panel**: Exposes the complete evidentiary pedigree (sensor source, model checkpoint, uncertainty bounds).
 
-### 14.2 Temporal 3D Change Intelligence
-Compares newly acquired resurveys against a registered baseline digital twin:
-- **Footprint Delta**: Evaluates polygon intersection over union (IoU), detecting horizontal encroachment.
+---
+
+## Temporal Change Intelligence
+
+The temporal intelligence module enables multi-epoch cadastral comparison between a registered baseline digital twin and newly acquired surveys:
+
+- **Footprint Delta**: Evaluates polygon intersection over union (IoU), detecting horizontal encroachment or illegal structural boundary shifts.
 - **Height Delta**: Detects unauthorized vertical floor additions ($\Delta h > 1.50\text{ m}$).
+- **Stratified Unit Modifications**: Audits alterations in volumetric property partitions across survey epochs.
 - **Technical Change Score**: Calibrated score ($0.00 - 1.00$) categorizing severity (`NONE`, `MINOR`, `MODERATE`, `SIGNIFICANT`, `CRITICAL`).
 - **Surveyor Review Dispatch**: Automatically flags discrepancies for on-site inspection (`requires_surveyor_review = true`).
 
 ---
 
-## 15. Testing & Automated Verification
+## Testing & Verification
 
-The prototype undergoes comprehensive automated verification across backend, geospatial, ML, and frontend components:
+The prototype undergoes comprehensive automated verification across backend, ML, geospatial, and frontend components:
 
-| Verification Suite | Execution Command | Result / Invariants Verified |
-|---|---|---|
-| **Backend Regression Suite** | `pytest -v` | **191 passed (100%), 0 failed in ~21s** across 21 test files |
-| **Adversarial Geospatial Tests** | `pytest tests/test_adversarial_geospatial.py` | **26 passed**: Self-intersections, multi-polygons, extreme coordinates |
-| **Frontend TypeScript Verification** | `npx tsc --noEmit` (in `frontend/`) | **0 errors (Clean exit code 0)** |
-| **Production Vite Build** | `npm run build` (in `frontend/`) | **Built in 18.23s (`dist/assets/index-aECjEJsP.js`)** |
-| **Sensor Code Resolution** | `npx tsx src/lib/sensorCodes.test.ts` | **43 passed**: Audits mappings, fallbacks, and labels for all sensor codes |
-| **Cadastral State Code Mapping** | `npx tsx src/lib/cadastralCodes.test.ts` | **15 passed**: Validates state codes, LADM mappings, and formatting |
-| **Nine-Source Verification Matrix** | `python scripts/test_9_sensor_sources.py` | **9/9 passed**: Live ingestion to digital twin provenance |
-| **Phase 5 All-Scenario Suite** | `python scripts/verify_phase_5_all.py` | **5/5 passed with zero fabrication** (LiDAR, Out-of-bounds, AI Fallback) |
-
-### Verified Performance Benchmarks
-Measured on reference test hardware across 10 iterations per operation:
-
-| Operation | Median Latency | P95 Latency | Payload Size |
+| Test / Verification | Execution Command | Recorded Result | What It Verifies |
 |---|---|---|---|
-| **System Health Probe** | **2.10 ms** | 4.50 ms | 2.19 KB |
-| **Footprint Extraction (U-Net ONNX)** | **17.86 ms** | 25.66 ms | 0.65 KB |
-| **Height Estimation (MLP ONNX)** | **38.38 ms** | 48.86 ms | 0.82 KB |
-| **Floor Strata Decomposition** | **16.01 ms** | 18.98 ms | 1.39 KB |
-| **Vertical Unit 3D Proposal** | **26.02 ms** | 28.16 ms | 4.35 KB |
-| **Digital Twin Volumetric Assembly** | **43.94 ms** | 61.00 ms | 9.27 KB |
-| **Temporal 3D Change Comparison** | **25.16 ms** | 48.97 ms | 2.09 KB |
-| **Complete End-to-End Pipeline Job** | **124.73 ms** | 175.30 ms | 7.80 KB |
+| **Backend Regression Suite** | `pytest -v` | **191 passed, 0 failed in ~21s** | Complete backend test suite (21 test files, 100% pass rate) |
+| **Adversarial Geospatial Suite** | `pytest tests/test_adversarial_geospatial.py` | **26 passed, 0 failed** | Boundary self-intersections, multi-polygons, extreme coordinates |
+| **Frontend TypeScript Verification** | `npx tsc --noEmit` (in `frontend/`) | **0 errors (Clean exit code 0)** | Strict TypeScript type safety across all frontend components |
+| **Production Vite Build** | `npm run build` (in `frontend/`) | **Built in 18.23s (`dist/index.html`)** | Clean production build with zero bundler errors |
+| **Sensor Code Resolution** | `npx tsx src/lib/sensorCodes.test.ts` | **43 passed, 0 failed** | Audits mappings, fallbacks, and labels for all 11 sensor codes |
+| **Cadastral State Code Mapping** | `npx tsx src/lib/cadastralCodes.test.ts` | **15 passed, 0 failed** | Validates state code mappings, LADM enums, and formatting |
+| **Nine-Source Verification Matrix** | `python scripts/test_9_sensor_sources.py` | **9/9 passed** | Ingestion-to-digital-twin for all 9 sensor sources |
+| **Phase 5 All-Scenario Suite** | `python scripts/verify_phase_5_all.py` | **5/5 passed with zero fabrication** | LiDAR extraction, out-of-bounds rejection, AI fallback, conflict |
 
 ---
 
-## 16. Deployment Architecture
+## Technology Stack
+
+| Layer | Technologies |
+|---|---|
+| **Backend API** | FastAPI 0.115+, Uvicorn, Python 3.11+, Pydantic v2 |
+| **Database & Geometry** | SQLAlchemy ORM, SQLite / PostGIS-Ready, Shapely, PyVista |
+| **AI / Machine Learning** | ONNX Runtime 1.20+ (CPU), Lightweight U-Net, HeightRegressorMLP |
+| **Frontend UI** | React 19, TypeScript 5.7, Vite 8, Tailwind CSS, Lucide Icons |
+| **3D Visualization** | Three.js (r128+), WebGL custom shaders, OrbitControls |
+| **Asynchronous Jobs** | Multi-stage background worker with progress tracking and event logs |
+| **Hosting & CI/CD** | Vercel (Frontend), Render (FastAPI Backend), GitHub Actions |
+
+---
+
+## Deployment Architecture
 
 ```mermaid
 flowchart LR
@@ -501,95 +380,62 @@ flowchart LR
 
 ---
 
-## 17. REST API Architecture
+## Project Structure
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/v1/health` | System health probe and database connectivity check |
-| `GET` | `/api/v1/ml/health` | ML subsystem health and active ONNX session status |
-| `GET` | `/api/v1/ml/capabilities` | Active ML models, architectures, parameter counts, and status |
-| `GET` | `/api/v1/ml/models` | List active models, architectures, checksums, and metrics |
-| `POST` | `/api/v1/ml/building/extract` | Extract building footprint from imagery tile (U-Net ONNX) |
-| `POST` | `/api/v1/ml/building/height` | Infer building height from footprint and terrain (MLP ONNX) |
-| `POST` | `/api/v1/ml/floors/decompose` | Decompose building height into parametric vertical strata |
-| `POST` | `/api/v1/ml/vertical/propose` | Generate volumetric 3D unit prisms |
-| `POST` | `/api/v1/jobs/process-parcel` | Orchestrate asynchronous end-to-end multi-sensor cadastral job |
-| `GET` | `/api/v1/jobs/{job_id}` | Poll asynchronous job execution status and stage timeline |
-| `GET` | `/api/v1/parcels/` | List registered land parcels (paginated) |
-| `POST` | `/api/v1/parcels/` | Register new 2D cadastral land parcel boundary |
-| `GET` | `/api/v1/parcels/{id}/digital-twin` | Retrieve 3D Digital Twin volumetric GeoJSON FeatureCollection |
-| `GET` | `/api/v1/validation/parcels/{id}` | Execute 102 validation rules and compute Quality Score |
-| `POST` | `/api/v1/digital-twin/compare` | Execute multi-epoch temporal 3D change comparison |
+```
+3D-ULPIN-Vertical-Property-Mapping/
+|-- app/                                    # FastAPI Backend Application
+|   |-- api/v1/endpoints/                   # REST route controllers
+|   |   |-- digital_twin.py                 # 3D Digital Twin GeoJSON & temporal comparison
+|   |   |-- health.py                       # System & database health probes
+|   |   |-- jobs.py                         # Asynchronous job creation & polling
+|   |   |-- ml.py                           # ONNX model inference & capabilities
+|   |   |-- parcels.py                      # LandParcel CRUD & spatial queries
+|   |   |-- units.py                        # VerticalUnit inspection
+|   |   `-- validation.py                   # 102-rule validation execution
+|   |-- core/                               # Application configuration, logging, CRS engine
+|   |-- db/                                 # SQLAlchemy database session & base ORM
+|   |-- jobs/                               # Async multi-stage job worker
+|   |-- ml/                                 # Machine Learning Subsystem
+|   |   |-- features/                       # 2D geometric feature extractors
+|   |   |-- fusion/                         # MultiSourceEvidenceFusionEngine & conflict detector
+|   |   |-- models/                         # BuildingDetector & HeightEstimator wrappers
+|   |   |-- pipelines/                      # FeatureExtractionPipeline orchestrator
+|   |   `-- preprocessing/                  # PointCloudPreprocessor (LAS) & RasterPreprocessor (DEM)
+|   |-- models/                             # SQLAlchemy ORM entities (Parcel, Building, Unit, Floor)
+|   |-- schemas/                            # Pydantic v2 data transfer schemas
+|   |-- services/                           # CadastreService, SpatialEngine, DigitalTwinService
+|   |-- temporal/                           # Temporal change comparator & scoring engine
+|   `-- validation/                         # 102 validation rules & Quality Scorer
+|-- data/                                   # Geospatial test data, manifests, fixtures
+|-- docs/                                   # In-depth technical architecture documentation
+|-- frontend/                               # React 19 + TypeScript 5.7 Web Application
+|   |-- src/
+|   |   |-- components/                     # DigitalTwin, Validation, Temporal, Survey UI
+|   |   |-- lib/                            # API client, sensorCodes, test suites
+|   |   |-- types/                          # TypeScript interfaces mirroring backend schemas
+|   |   |-- App.tsx                         # Main dashboard & navigation
+|   |   `-- main.tsx                        # React application bootstrap
+|   |-- package.json                        # Node dependencies
+|   `-- vite.config.ts                      # Vite build configuration
+|-- models/                                 # Deployed Trained ONNX Models & Metadata
+|   |-- building_detector.onnx              # U-Net footprint segmentation (1.87 MB)
+|   |-- building_detector_metadata.json     # Architecture, parameters, SpaceNet 1 metrics
+|   |-- height_estimator.onnx               # MLP height regressor (22.3 KB)
+|   `-- height_estimator_metadata.json      # Architecture, parameters, 3DBAG metrics
+|-- scripts/                                # Demonstration & verification scripts
+|   |-- test_9_sensor_sources.py            # Automated 9-source fusion verification matrix
+|   |-- verify_phase_5_all.py               # Phase 5 scenario verification runner
+|   `-- sih_final_demonstration.py          # End-to-end evaluation demonstration script
+|-- tests/                                  # 191 Pytest automated tests (100% pass)
+|-- requirements.txt                        # Python dependencies
+|-- pytest.ini                              # Pytest runner configuration
+`-- README.md                               # System documentation (this file)
+```
 
 ---
 
-## 18. Local Setup & Reproduction Instructions
-
-### Prerequisites
-- Python 3.11, 3.12, or 3.13
-- Node.js 18+ and npm
-- Git
-
-### 1. Clone the Repository
-```powershell
-git clone https://github.com/SreyasM24/3D-ULPIN-Vertical-Property-Mapping.git
-cd 3D-ULPIN-Vertical-Property-Mapping
-```
-
-### 2. Backend Setup
-```powershell
-# Create and activate Python virtual environment
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Create environment configuration
-copy .env.example .env
-
-# Run automated tests to verify installation (191 tests pass)
-pytest -v
-
-# Start FastAPI backend server
-uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
-```
-*FastAPI Swagger documentation available at: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)*
-
-### 3. Frontend Setup (Second Terminal)
-```powershell
-cd 3D-ULPIN-Vertical-Property-Mapping\frontend
-
-# Install Node dependencies
-npm install
-
-# Verify TypeScript type safety (0 errors)
-npx tsc --noEmit
-
-# Run frontend tests
-npx tsx src/lib/sensorCodes.test.ts
-npx tsx src/lib/cadastralCodes.test.ts
-
-# Start Vite development server
-npm run dev -- --host 127.0.0.1 --port 5173
-```
-*Web application accessible at: [http://127.0.0.1:5173](http://127.0.0.1:5173)*
-
----
-
-## 19. Technical Limitations & Non-Claims
-
-To maintain scientific integrity and prevent overclaiming, this prototype explicitly establishes its technical boundaries:
-
-1. **Advisory Height Model & Domain Shift**: The `HeightRegressorMLP` was trained on the 3DBAG dataset (Delft, Netherlands; AHN4 LiDAR). Its learned spatial relationships reflect European architectural typologies. When applied to dense, heterogeneous Indian urban morphology, the raw regression acts purely as an **advisory prior**. The platform attaches a mandatory warning flag (`review_required = true`) whenever AI height is selected.
-2. **Prototype 3D ULPIN Schema**: The 3D ULPIN schema implemented (`<BASE14>-<LEVEL>-<UNIT>-<CHECKSUM>`) is a research and engineering extension formulated for SIH 26011. It is **not** an officially gazetted standard of the Government of India or the Department of Land Resources (DoLR).
-3. **Technical Quality vs Legal Title Guarantee**: The 102-rule Cadastral Quality Score ($0 - 100$) measures **geometric validity, topological consistency, and attribute completeness**. It **does not** constitute a legal government title certification or ownership endorsement.
-4. **Spatial Coverage Gating**: Point cloud processing is strictly spatially gated. If target coordinates fall outside the LiDAR bounding box, the evidence is categorized as `REJECTED_OUT_OF_BOUNDS`. The system **never** fabricates elevation values when sensor coverage is missing.
-5. **Memory & Decimation**: Large ASPRS LAS/LAZ point clouds are processed with decimation filters to run within standard memory constraints (512 MB – 2 GB RAM tier).
-
----
-
-## 20. Datasets & Attribution
+## Datasets & Attribution
 
 The project utilizes open, verified geospatial datasets documented in [`data/ml/README.md`](data/ml/README.md):
 - **SpaceNet 1: Building Extraction (Rio de Janeiro)**: 0.5m GSD 3-band satellite imagery tiles paired with building polygon GeoJSON labels. Hosted on AWS Open Data under CC-BY-SA 4.0.
@@ -599,15 +445,56 @@ The project utilizes open, verified geospatial datasets documented in [`data/ml/
 
 ---
 
-## 21. Disclaimer
+## Limitations
 
-> **Official Notice**: *This project is a research prototype developed for the Smart India Hackathon (SIH 2026, Problem Statement PS 26011). The prototype 3D ULPIN schema, geometric models, and validation scores are algorithmic representations designed for technical evaluation. They do not constitute official statutory land titles, government-certified property records, or gazetted standards of the Government of India.*
+1. **Advisory Height Model & Domain Shift**: The `HeightRegressorMLP` was trained on the 3DBAG dataset (Delft, Netherlands; AHN4 LiDAR). Its learned spatial relationships reflect European architectural typologies. When applied to dense, heterogeneous Indian urban morphology, the raw regression acts purely as an **advisory prior**. The platform attaches a mandatory warning flag (`review_required = true`) whenever AI height is selected.
+2. **Prototype 3D ULPIN Schema**: The 3D ULPIN schema implemented (`<BASE14>-<LEVEL>-<UNIT>-<CHECKSUM>`) is a research and engineering extension formulated for SIH 26011. It is **not** an officially gazetted standard of the Government of India or the Department of Land Resources (DoLR).
+3. **Technical Quality vs Legal Title Guarantee**: The 102-rule Cadastral Quality Score (0–100) measures **geometric validity, topological consistency, and attribute completeness**. It **does not** constitute a legal government title certification or ownership endorsement.
+4. **Spatial Coverage Gating**: Point cloud processing is strictly spatially gated. If target coordinates fall outside the LiDAR bounding box, the evidence is categorized as `REJECTED_OUT_OF_BOUNDS`. The system **never** fabricates elevation values when sensor coverage is missing.
+5. **Memory & Decimation**: Large ASPRS LAS/LAZ point clouds are processed with decimation filters to run within standard memory constraints (512 MB – 2 GB RAM tier).
 
 ---
 
-## 22. Team
+## Security & Data Governance
 
-# THE OVERFITTERS
+- **Zero Committed Secrets**: No API keys, database credentials, or secret tokens are tracked in version control.
+- **Environment Isolation**: Production environments consume configuration strictly via environment variables.
+- **Citizen Privacy (Bhu-Aadhaar Alignment)**: The data model supports SHA-256 privacy hashing for citizen identity numbers, ensuring ownership shares can be verified without exposing private Aadhaar credentials.
+- **CORS Protection**: The FastAPI backend enforces strict Cross-Origin Resource Sharing (CORS) whitelists, permitting only authorized production frontend domains (`https://3d-ulpin-pi.vercel.app`) and local development origins.
+
+---
+
+## Scalability & Future Scope
+
+1. **National Standard Integration**: Collaborate with the Department of Land Resources (DoLR) to align the prototype 3D ULPIN schema with evolving Bhu-Aadhaar vertical guidelines.
+2. **Native PostGIS 3D Backend**: Transition from SQLite storage to native PostgreSQL/PostGIS 3D volumetric datatypes (`SFCGAL`, `POLYHEDRALSURFACE Z`).
+3. **SVAMITVA Drone Dataset Fine-Tuning**: Fine-tune the U-Net and height regression models on high-resolution drone datasets from the **SVAMITVA** scheme across diverse Indian states.
+4. **BIM / IFC Ingestion**: Add native Industry Foundation Classes (IFC / CityGML LoD 3/4) parsers for direct ingestion of high-rise building information models.
+5. **Decentralized Land Registry Pilots**: Provide cryptographically signed digital twin state hashes suitable for state-level blockchain land registry pilots.
+
+---
+
+## Demo Workflow
+
+1. **Access Web Application**: Open [https://3d-ulpin-pi.vercel.app](https://3d-ulpin-pi.vercel.app) (or run locally via `npm run dev`).
+2. **Review System Readiness**: Inspect the System Status dashboard showing active cadastral engine capabilities, model readiness, and database connection.
+3. **Ingest / Process Survey**: Navigate to Survey Processing, configure parcel parameters or select a survey template, and trigger the asynchronous processing pipeline.
+4. **Inspect 3D Digital Twin**: Open the 3D Digital Twin viewer to examine the polyhedral building envelope and stratified vertical property units.
+5. **Subterranean Inspection**: Toggle Subterranean Mode to visualize basement parking bays and underground infrastructure.
+6. **3D ULPIN & Lineage**: Click any unit to inspect its prototype 3D ULPIN, sensor provenance, and spatial dimensions.
+7. **Cadastral Quality Audit**: Review the 102-rule validation report showing compliance across all 6 dimensions.
+8. **Temporal Change Audit**: Run a temporal resurvey comparison to detect and review simulated vertical additions with advisory surveyor flags.
+
+---
+
+## Disclaimer
+
+> **Official Notice:** *This project is a research prototype developed for the Smart India Hackathon (SIH 2026, Problem Statement PS 26011). The prototype 3D ULPIN schema, geometric models, and validation scores are algorithmic representations designed for technical evaluation. They do not constitute official statutory land titles, government-certified property records, or gazetted standards of the Government of India.*
+
+---
+
+## THE OVERFITTERS
+
 **Smart India Hackathon (SIH 2026)**  
 **Problem Statement: PS 26011**  
 Ministry of Rural Development & Department of Land Resources (DoLR)
