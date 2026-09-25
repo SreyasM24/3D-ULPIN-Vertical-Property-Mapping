@@ -21,6 +21,7 @@ interface SystemStatusProps {
   totalUnitsCount?: number;
   validationStatusSummary?: string;
   isBackendConnected: boolean;
+  isConnecting?: boolean;
   qualityScore?: number | null;
   qualityGrade?: string | null;
   rulesCount?: number | null;
@@ -34,14 +35,15 @@ export const SystemStatus: React.FC<SystemStatusProps> = ({
   totalUnitsCount = 0,
   validationStatusSummary,
   isBackendConnected,
+  isConnecting = false,
   qualityScore,
   qualityGrade,
   rulesCount,
 }) => {
   const displayScore = qualityScore != null ? `${qualityScore.toFixed(1)} Quality Score` : (validationStatusSummary || 'Awaiting Audit');
-  const displayGrade = qualityGrade || (isBackendConnected ? 'AUDIT READY' : 'OFFLINE');
-  const displayRules = rulesCount != null ? `${rulesCount} Rules` : (capabilities?.deterministic_rules_count ? `${capabilities.deterministic_rules_count} Rules` : 'Active Engine');
-  const displayVersion = capabilities?.version || health?.version || 'FastAPI v1';
+  const displayGrade = qualityGrade || (isBackendConnected ? 'AUDIT READY' : (isConnecting ? 'INITIALIZING' : 'OFFLINE'));
+  const displayRules = rulesCount != null ? `${rulesCount} Rules` : (capabilities?.deterministic_rules_count ? `${capabilities.deterministic_rules_count} Rules` : (isConnecting ? 'Connecting…' : 'Active Engine'));
+  const displayVersion = capabilities?.version || health?.version || (isConnecting ? 'Connecting…' : 'FastAPI v1');
 
   return (
     <div className="space-y-4">

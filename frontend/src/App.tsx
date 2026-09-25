@@ -31,13 +31,23 @@ import { digitalTwinApi } from './lib/api/digitalTwin.ts';
 import { validationApi } from './lib/api/validation.ts';
 import { jobsApi } from './lib/api/jobs.ts';
 import { API_BASE_URL } from './lib/api/config.ts';
-import { AlertCircle, RefreshCw, Box, ShieldCheck, Layers } from 'lucide-react';
+import { AlertCircle, RefreshCw, CheckCircle2, Box, ShieldCheck, Layers } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<NavigationTab>('overview');
   const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
+  const [showConnectedNotice, setShowConnectedNotice] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const isMountedRef = React.useRef<boolean>(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Dynamic Cadastral Data State (initialized to null/empty)
   const [parcels, setParcels] = useState<LandParcel[]>([]);
@@ -108,55 +118,88 @@ export default function App() {
     }
   }, []);
 
-  // System Initialization: Probe health, capabilities, and dynamic parcels in parallel
-  const initSystem = useCallback(async () => {
+  // System Initialization: Probe health with graceful retries (covers Render 15-30s cold start)
+  const initSystem = useCallback(async (manualRetryOrEvent?: boolean | React.SyntheticEvent) => {
+    const isManualRetry = typeof manualRetryOrEvent === 'boolean' ? manualRetryOrEvent : false;
+    if (!isMountedRef.current) return;
     setIsLoading(true);
+    setConnectionStatus('connecting');
+    setShowConnectedNotice(false);
     setErrorMessage(null);
 
-    try {
-      const [healthRes, capsRes, parcelsRes] = await Promise.all([
-        healthApi.checkHealth(),
-        healthApi.getCapabilities(),
-        parcelsApi.listParcels(1, 20),
-      ]);
+    // Multi-attempt probe to accommodate Render cold start without alarming error flashes
+    const maxAttempts = isManualRetry ? 3 : 4;
+    const retryDelayMs = 2500;
+    let healthData: SystemHealth | null = null;
 
-      if (healthRes.success && healthRes.data) {
-        setHealth(healthRes.data);
-        setIsBackendConnected(true);
-      } else {
-        setIsBackendConnected(false);
-        setHealth(null);
-        setCapabilities(null);
-        setParcels([]);
-        setSelectedParcel(null);
-        setDigitalTwin(null);
-        setValidationReport(null);
-        setSelectedItem(null);
-        return;
-      }
-
-      if (capsRes.success && capsRes.data) {
-        setCapabilities(capsRes.data);
-      }
-
-      if (parcelsRes.success && parcelsRes.data) {
-        const parcelList = parcelsRes.data.items || [];
-        setParcels(parcelList);
-
-        if (parcelList.length > 0) {
-          const firstParcel = parcelList[0];
-          setSelectedParcel(firstParcel);
-          await loadParcelDetails(firstParcel);
-        } else {
-          setSelectedParcel(null);
-          setDigitalTwin(null);
-          setValidationReport(null);
-          setSelectedItem(null);
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      if (!isMountedRef.current) return;
+      try {
+        const healthRes = await healthApi.checkHealth(8000);
+        if (healthRes.success && healthRes.data) {
+          healthData = healthRes.data;
+          break;
+        }
+      } catch (probeErr: any) {
+        if (attempt === maxAttempts) {
+          console.warn(`Health check attempt ${attempt}/${maxAttempts} did not succeed:`, probeErr?.message);
         }
       }
-    } catch (err: any) {
-      console.error('Failed to initialize cadastral data from FastAPI backend:', err);
+
+      if (attempt < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+      }
+    }
+
+    if (!isMountedRef.current) return;
+
+    if (healthData) {
+      setHealth(healthData);
+      setIsBackendConnected(true);
+      setConnectionStatus('connected');
+      setShowConnectedNotice(true);
+
+      // Auto-dismiss the connected banner after 5 seconds
+      setTimeout(() => {
+        if (isMountedRef.current) {
+          setShowConnectedNotice(false);
+        }
+      }, 5000);
+
+      try {
+        const [capsRes, parcelsRes] = await Promise.allSettled([
+          healthApi.getCapabilities(8000),
+          parcelsApi.listParcels(1, 20),
+        ]);
+
+        if (!isMountedRef.current) return;
+
+        if (capsRes.status === 'fulfilled' && capsRes.value.success && capsRes.value.data) {
+          setCapabilities(capsRes.value.data);
+        }
+
+        if (parcelsRes.status === 'fulfilled' && parcelsRes.value.success && parcelsRes.value.data) {
+          const parcelList = parcelsRes.value.data.items || [];
+          setParcels(parcelList);
+
+          if (parcelList.length > 0) {
+            const firstParcel = parcelList[0];
+            setSelectedParcel(firstParcel);
+            await loadParcelDetails(firstParcel);
+          } else {
+            setSelectedParcel(null);
+            setDigitalTwin(null);
+            setValidationReport(null);
+            setSelectedItem(null);
+          }
+        }
+      } catch (loadErr: any) {
+        console.warn('Error loading secondary cadastral metadata:', loadErr?.message);
+      }
+    } else {
+      // Only enter genuine error state if all retries across the cold-start window fail
       setIsBackendConnected(false);
+      setConnectionStatus('error');
       setHealth(null);
       setCapabilities(null);
       setParcels([]);
@@ -164,10 +207,10 @@ export default function App() {
       setDigitalTwin(null);
       setValidationReport(null);
       setSelectedItem(null);
-      setErrorMessage(err?.message || 'Unable to connect to FastAPI cadastral service.');
-    } finally {
-      setIsLoading(false);
+      setErrorMessage('The processing service is taking longer than expected. Please try again.');
     }
+
+    setIsLoading(false);
   }, [loadParcelDetails]);
 
   useEffect(() => {
@@ -355,22 +398,71 @@ export default function App() {
       onLoadDemo={handleLoadDemo}
       isBackendConnected={isBackendConnected}
       activeCrs={selectedParcel?.crs || 'EPSG:4326'}
-      parcelNumber={selectedParcel?.survey_number || (isLoading ? 'Loading…' : 'None')}
+      parcelNumber={selectedParcel?.survey_number || (connectionStatus === 'connecting' ? 'Connecting…' : 'None')}
       validationBadge={validationReport ? String(validationReport.total_rules_executed ?? validationReport.evaluated_rules?.length ?? 'OK') : undefined}
       parcels={parcels}
       selectedParcel={selectedParcel}
       onSelectParcel={handleSelectParcel}
     >
-      {/* Backend Connection Alert Banner if disconnected */}
-      {!isBackendConnected && !isLoading && (
-        <div className="mb-6 p-3 rounded-lg bg-[#b84d47]/15 border border-[#b84d47]/30 flex items-center justify-between text-xs text-[#c45852]">
+      {/* 1. Cadastral Engine Connecting (Neutral Cold-Start / Pending State) */}
+      {connectionStatus === 'connecting' && (
+        <div className="mb-6 p-3 rounded-lg bg-[#1c1d20] border border-[#2d3034] flex items-center justify-between text-xs animate-fadeIn">
+          <div className="flex items-center gap-2.5">
+            <RefreshCw className="w-4 h-4 text-[#d97757] animate-spin flex-shrink-0" />
+            <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2">
+              <span className="font-medium text-[#f4f3ef]">Connecting to Cadastral Engine</span>
+              <span className="text-[#a09f99] hidden sm:inline">•</span>
+              <span className="text-[#a09f99]">Initializing the processing service. This may take a few moments…</span>
+            </div>
+          </div>
+          <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-[#a09f99] font-mono px-2 py-0.5 rounded bg-[#222428] border border-[#2d3034]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#d97757] animate-pulse"></span>
+            <span>Connecting</span>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Cadastral Engine Ready (Successful Connected State) */}
+      {connectionStatus === 'connected' && showConnectedNotice && (
+        <div className="mb-6 p-3 rounded-lg bg-[#1c1d20] border border-[#2d3034] flex items-center justify-between text-xs animate-fadeIn transition-opacity duration-300">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="w-4 h-4 text-[#6b8e72] flex-shrink-0" />
+            <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2">
+              <span className="font-medium text-[#f4f3ef]">Cadastral Engine Ready</span>
+              <span className="text-[#a09f99] hidden sm:inline">•</span>
+              <span className="text-[#a09f99]">Connected and ready for survey processing.</span>
+            </div>
+          </div>
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            <span>FastAPI backend is unreachable at <code>{API_BASE_URL}</code>. Ensure the service is running.</span>
+            <div className="flex items-center gap-1.5 text-[11px] text-[#6b8e72] font-mono px-2 py-0.5 rounded bg-[#4e8a5b]/10 border border-[#4e8a5b]/25">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#6b8e72]"></span>
+              <span>Ready</span>
+            </div>
+            <button
+              onClick={() => setShowConnectedNotice(false)}
+              className="text-[#a09f99] hover:text-[#f4f3ef] text-[11px] px-1.5 py-0.5 rounded hover:bg-[#222428] transition-colors"
+              title="Dismiss"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Genuine Failure State (Only after reasonable retry/timeout behavior) */}
+      {connectionStatus === 'error' && (
+        <div className="mb-6 p-3 rounded-lg bg-[#b84d47]/15 border border-[#b84d47]/30 flex items-center justify-between text-xs text-[#c45852] animate-fadeIn">
+          <div className="flex items-center gap-2.5">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 text-[#c45852]" />
+            <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2">
+              <span className="font-medium text-[#f4f3ef]">Connection could not be established</span>
+              <span className="text-[#c45852] hidden sm:inline">•</span>
+              <span className="text-[#c45852]">The processing service is taking longer than expected. Please try again.</span>
+            </div>
           </div>
           <button
-            onClick={initSystem}
-            className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#222428] hover:bg-[#2b2d32] border border-[#3e4249] text-[#f4f3ef] transition-colors"
+            onClick={() => initSystem(true)}
+            className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#222428] hover:bg-[#2b2d32] border border-[#3e4249] text-[#f4f3ef] transition-colors flex-shrink-0 shadow-sm"
           >
             <RefreshCw className="w-3 h-3" />
             <span>Retry Connection</span>
@@ -396,6 +488,7 @@ export default function App() {
             activeJob={activeJob}
             totalUnitsCount={digitalTwin?.units?.length || 0}
             isBackendConnected={isBackendConnected}
+            isConnecting={connectionStatus === 'connecting'}
             qualityScore={validationReport?.quality_score?.total_score}
             qualityGrade={validationReport?.quality_score?.grade}
             rulesCount={validationReport?.total_rules_executed}
@@ -534,7 +627,7 @@ export default function App() {
                 Connect to the FastAPI backend to load cadastral parcels, or submit a survey ingestion job.
               </p>
               <button
-                onClick={initSystem}
+                onClick={() => initSystem(true)}
                 className="px-4 py-2 rounded bg-[#c86446] hover:bg-[#d97757] text-[#f4f3ef] text-xs font-medium transition-colors"
               >
                 Fetch Parcels from Backend
